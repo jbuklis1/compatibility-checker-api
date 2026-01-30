@@ -1,0 +1,149 @@
+<h1>Results: {file_path}</h1>
+{error_block}
+<script type="application/json" id="results-data">{results_json}</script>
+<script>
+(function() {{
+  const dataEl = document.getElementById('results-data');
+  if (dataEl) {{
+    try {{
+      const results = JSON.parse(dataEl.textContent);
+      const cacheKey = 'compat_checker_results_' + results.file_path;
+      localStorage.setItem(cacheKey, JSON.stringify(results));
+    }} catch (e) {{
+      console.error('Failed to cache results:', e);
+    }}
+  }}
+}})();
+</script>
+<p><strong>{issue_count}</strong> issue(s) found.</p>
+<div class="section">
+  <h2>Issues</h2>
+  {issues_block}
+</div>
+{suggestions_block}
+{tests_block}
+<div class="download-section">
+  <button onclick="downloadReport()" class="download-button">⬇ Download Report</button>
+</div>
+<script>
+function downloadReport() {{
+  const dataEl = document.getElementById('results-data');
+  if (!dataEl) {{
+    alert('Results data not found');
+    return;
+  }}
+  try {{
+    const results = JSON.parse(dataEl.textContent);
+    const report = formatTextReport(results);
+    const blob = new Blob([report], {{ type: 'text/plain' }});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = results.file_name + '_compatibility_report.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }} catch (e) {{
+    console.error('Download failed:', e);
+    alert('Download failed. Please try again.');
+  }}
+}}
+
+function formatTextReport(results) {{
+  function normalizeEscapes(text) {{
+    if (!text) return text;
+    // Convert common escaped sequences (\\n, \\r\\n, \\t) into real control characters
+    return text
+      .replace(/\\r\\n/g, '\n')
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t');
+  }}
+
+  const lines = [];
+  lines.push('='.repeat(80));
+  lines.push('Cross-Platform Compatibility Analysis Report');
+  lines.push('='.repeat(80));
+  lines.push('File: ' + results.file_path);
+  lines.push('Generated: ' + new Date().toLocaleString());
+  lines.push('');
+  
+  const errors = results.issues.filter(i => i.severity === 'ERROR');
+  const warnings = results.issues.filter(i => i.severity === 'WARNING');
+  const infos = results.issues.filter(i => i.severity === 'INFO');
+  
+  lines.push('SUMMARY');
+  lines.push('-'.repeat(80));
+  lines.push('Total issues: ' + results.issues.length);
+  lines.push('  Errors:   ' + errors.length);
+  lines.push('  Warnings: ' + warnings.length);
+  lines.push('  Info:     ' + infos.length);
+  lines.push('');
+  
+  if (errors.length > 0) {{
+    lines.push('ERRORS');
+    lines.push('-'.repeat(80));
+    errors.forEach(i => {{
+      lines.push('Line ' + i.line_number + ' (' + i.category + ')');
+      lines.push('  Message: ' + i.message);
+      lines.push('  Code:    ' + i.code);
+      lines.push('  Fix:     ' + i.suggestion);
+      lines.push('');
+    }});
+  }}
+  
+  if (warnings.length > 0) {{
+    lines.push('WARNINGS');
+    lines.push('-'.repeat(80));
+    warnings.forEach(i => {{
+      lines.push('Line ' + i.line_number + ' (' + i.category + ')');
+      lines.push('  Message: ' + i.message);
+      lines.push('  Code:    ' + i.code);
+      lines.push('  Fix:     ' + i.suggestion);
+      lines.push('');
+    }});
+  }}
+  
+  if (infos.length > 0) {{
+    lines.push('INFO');
+    lines.push('-'.repeat(80));
+    infos.forEach(i => {{
+      lines.push('Line ' + i.line_number + ' (' + i.category + ')');
+      lines.push('  Message: ' + i.message);
+      lines.push('  Code:    ' + i.code);
+      lines.push('  Fix:     ' + i.suggestion);
+      lines.push('');
+    }});
+  }}
+  
+  if (results.issues.length === 0) {{
+    lines.push('No compatibility issues found.');
+    lines.push('');
+  }}
+  
+  if (results.ai_suggestions) {{
+    const aiText = normalizeEscapes(results.ai_suggestions);
+    lines.push('='.repeat(80));
+    lines.push('AI FIX SUGGESTIONS');
+    lines.push('='.repeat(80));
+    lines.push(aiText);
+    lines.push('');
+  }}
+  
+  if (results.generated_tests) {{
+    const testsText = normalizeEscapes(results.generated_tests);
+    lines.push('='.repeat(80));
+    lines.push('GENERATED TEST CASES');
+    lines.push('='.repeat(80));
+    lines.push(testsText);
+    lines.push('');
+  }}
+  
+  lines.push('='.repeat(80));
+  lines.push('End of Report');
+  lines.push('='.repeat(80));
+  
+  return lines.join('\n');
+}}
+</script>
+<p style="margin-top: 1rem;"><a href="/review">Review another file</a> · <a href="/">Home</a> · <a href="/docs">Swagger UI</a></p>

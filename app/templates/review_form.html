@@ -1,0 +1,13 @@
+<h1>Review file for cross-platform compatibility</h1>
+<p>Enter the <strong>absolute path</strong> to a source file on this server (e.g. <code>/home/you/project/main.py</code>).</p>
+{error_block}
+<form method="post" action="/review">
+  <div>
+    <label for="file_path">File path</label>
+    <input type="text" id="file_path" name="file_path" placeholder="/absolute/path/to/file.py" required{value_attr}>
+  </div>
+  <div>
+    <button type="submit">Analyze</button>
+  </div>
+</form>
+<p><a href="/">Home</a> · <a href="/docs">Swagger UI</a> · <a href="/redoc">ReDoc</a> · <a href="/health">Health</a></p>
