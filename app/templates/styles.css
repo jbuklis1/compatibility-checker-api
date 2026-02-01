@@ -57,6 +57,10 @@ input[type="text"] {
   min-width: 20rem;
 }
 
+.submit-buttons button + button {
+  margin-left: 0.75rem;
+}
+
 button {
   padding: 0.5rem 1rem;
   font-size: 0.9375rem;

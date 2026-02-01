@@ -265,8 +265,11 @@ def review_multi(req: MultiFileAnalyzeRequest) -> MultiFileAnalyzeResponse:
 
 
 @router.post("/review/upload", response_class=HTMLResponse)
-def review_upload(files: List[UploadFile] = File(...)) -> str:
-    """Handle generic upload (single file, archive, or folder/multi-file)."""
+def review_upload(
+    files: List[UploadFile] = File(...),
+    mode: str = Form(default="ai"),
+) -> str:
+    """Handle generic upload (single file, archive, or folder/multi-file). mode=ai (default) or rules."""
     from ..templates import render_review_multi_results
 
     # Filter out phantom/empty file parts (some browsers send extra parts with empty filename)
@@ -299,18 +302,21 @@ def review_upload(files: List[UploadFile] = File(...)) -> str:
             single_path = source_files[0]
             try:
                 issues = checker_svc.analyze_file(single_path)
-                try:
-                    code = single_path.read_text(encoding="utf-8", errors="replace")
-                    lang = detect_language(single_path)
-                except Exception:
-                    code = None
-                    lang = None
-                ai_suggestions = ai_svc.suggest_fixes(issues, code=code, language=lang)
-                generated_tests = (
-                    ai_svc.generate_tests(code or "", lang or "unknown", issues)
-                    if (code and lang)
-                    else None
-                )
+                ai_suggestions = None
+                generated_tests = None
+                if mode == "ai":
+                    try:
+                        code = single_path.read_text(encoding="utf-8", errors="replace")
+                        lang = detect_language(single_path)
+                    except Exception:
+                        code = None
+                        lang = None
+                    ai_suggestions = ai_svc.suggest_fixes(issues, code=code, language=lang)
+                    generated_tests = (
+                        ai_svc.generate_tests(code or "", lang or "unknown", issues)
+                        if (code and lang)
+                        else None
+                    )
                 return render_review_results(str(single_path), issues, ai_suggestions, generated_tests)
             finally:
                 if temp_dir and temp_dir.exists() and temp_dir.name.startswith("compat_upload_"):
@@ -322,19 +328,19 @@ def review_upload(files: List[UploadFile] = File(...)) -> str:
         # Build dependency graph
         dependency_graph = build_dependency_graph(source_files)
 
-        # Read code for AI analysis
-        code_by_file: Dict[Path, str] = {}
-        for file_path in source_files:
-            try:
-                code_by_file[file_path] = file_path.read_text(encoding="utf-8", errors="replace")
-            except Exception:
-                pass
-
-        # Get AI insights
-        cross_file_insights = ai_svc.analyze_group_relationships(
-            source_files, issues_by_file, dependency_graph
-        )
-        group_fixes = ai_svc.suggest_group_fixes(issues_by_file, dependency_graph, code_by_file)
+        cross_file_insights = None
+        group_fixes = None
+        if mode == "ai":
+            code_by_file: Dict[Path, str] = {}
+            for file_path in source_files:
+                try:
+                    code_by_file[file_path] = file_path.read_text(encoding="utf-8", errors="replace")
+                except Exception:
+                    pass
+            cross_file_insights = ai_svc.analyze_group_relationships(
+                source_files, issues_by_file, dependency_graph
+            )
+            group_fixes = ai_svc.suggest_group_fixes(issues_by_file, dependency_graph, code_by_file)
 
         # Format response
         file_issues_list = []

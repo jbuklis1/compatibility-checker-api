@@ -164,33 +164,32 @@ class CrossPlatformChecker:
         return imports
     
     def _extract_python_imports(self, lines: List[str]) -> List[str]:
-        """Extract Python import statements."""
+        """Extract Python import statements. Returns full module paths for resolution."""
         imports: List[str] = []
         import re
-        
+
         for line in lines:
             stripped = line.strip()
-            # Skip comments
             if stripped.startswith('#'):
                 continue
-            
-            # import module
+
+            # import module / import module.sub
             match = re.match(r'^\s*import\s+(\S+)', stripped)
             if match:
-                imports.append(match.group(1).split('.')[0])
+                imports.append(match.group(1))
                 continue
-            
-            # from module import ...
+
+            # from module import ... / from .module import ...
             match = re.match(r'^\s*from\s+(\S+)\s+import', stripped)
             if match:
-                imports.append(match.group(1).split('.')[0])
+                imports.append(match.group(1))
                 continue
-            
+
             # __import__('module')
             match = re.search(r"__import__\s*\(\s*['\"](\S+)['\"]", stripped)
             if match:
-                imports.append(match.group(1).split('.')[0])
-        
+                imports.append(match.group(1))
+
         return imports
     
     def _extract_javascript_imports(self, lines: List[str]) -> List[str]:
@@ -239,41 +238,72 @@ class CrossPlatformChecker:
     
     def _resolve_import(self, imp: str, from_file: Path, file_set: set) -> Optional[Path]:
         """Try to resolve an import to an actual file path."""
-        # Remove file extension from import
-        imp_base = imp.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '')
-        
-        # Try exact match
-        for file_path in file_set:
-            if file_path.name == imp or file_path.stem == imp_base:
-                return file_path
-        
-        # Try relative to current file's directory
-        if from_file.parent:
-            # Direct file name match
-            candidate = from_file.parent / imp
-            if candidate in file_set:
-                return candidate
-            
-            # Try with common extensions
-            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c']:
-                candidate = from_file.parent / (imp_base + ext)
+        import os
+
+        from_file = from_file.resolve()
+        file_set = {p.resolve() for p in file_set}
+
+        imp_clean = imp.strip()
+        if not imp_clean:
+            return None
+
+        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '')
+
+        # Relative import (Python: from .module or from ..module import ...)
+        if imp_clean.startswith('.'):
+            dots_and_name = imp_clean.split('.')
+            n_dots = sum(1 for x in dots_and_name if x == '')  # leading dots
+            parts = [p for p in dots_and_name if p]
+            if not parts:
+                return None
+            rel_path = from_file.parent
+            for _ in range(n_dots - 1):
+                rel_path = rel_path.parent
+            for part in parts:
+                rel_path = rel_path / part
+            for ext in ['.py', '.ts', '.js']:
+                candidate = rel_path.with_suffix(ext)
                 if candidate in file_set:
                     return candidate
-        
-        # Try relative import (Python: from .module import ...)
-        if imp.startswith('.'):
-            parts = imp.split('.')
-            if len(parts) > 1:
-                rel_path = from_file.parent
-                for part in parts[1:]:
-                    if part:
-                        rel_path = rel_path / part
-                # Try with extensions
-                for ext in ['.py', '.js', '.ts']:
-                    candidate = rel_path.with_suffix(ext)
-                    if candidate in file_set:
-                        return candidate
-        
+            candidate = rel_path / '__init__.py'
+            if candidate in file_set:
+                return candidate
+            return None
+
+        # Dotted module path (e.g. app.utils): match by module path derived from file_set
+        if '.' in imp_clean and not imp_clean.startswith(('node_modules', '/')):
+            try:
+                common = Path(os.path.commonpath([str(p) for p in file_set]))
+                if common.is_file():
+                    common = common.parent
+            except (ValueError, TypeError):
+                common = None
+            if common:
+                imp_module = imp_base.replace('.', '/')
+                for fp in file_set:
+                    try:
+                        rel = fp.relative_to(common)
+                    except ValueError:
+                        continue
+                    stem = str(rel).replace('\\', '/').replace('.py', '').replace('.ts', '').replace('.js', '')
+                    if stem.endswith('/__init__'):
+                        stem = stem[:-9]
+                    module_path = stem.replace('/', '.')
+                    if module_path == imp_base or module_path.endswith('.' + imp_base):
+                        return fp
+
+        # Exact filename match
+        for fp in file_set:
+            if fp.name == imp_clean or fp.stem == imp_base:
+                return fp
+
+        # Same directory, with extensions
+        if from_file.parent:
+            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c']:
+                candidate = (from_file.parent / (imp_base + ext)).resolve()
+                if candidate in file_set:
+                    return candidate
+
         return None
     
     def _detect_circular_dependencies(self, graph: Dict[str, Dict[str, List[str]]]) -> List[List[str]]:

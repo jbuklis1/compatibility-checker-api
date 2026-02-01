@@ -16,8 +16,9 @@
   <div>
     <small id="selection-summary">No selection yet.</small>
   </div>
-  <div>
-    <button type="submit" id="analyze-btn" disabled>Analyze</button>
+  <div class="submit-buttons">
+    <button type="submit" name="mode" value="ai" id="analyze-btn" disabled>Analyze (with AI)</button>
+    <button type="submit" name="mode" value="rules" id="analyze-rules-btn" disabled>Analyze (rules only)</button>
   </div>
 </form>
 
@@ -27,6 +28,7 @@
   const inputFolder = document.getElementById('source-folder');
   const summary = document.getElementById('selection-summary');
   const button = document.getElementById('analyze-btn');
+  const rulesButton = document.getElementById('analyze-rules-btn');
 
   function classify(files) {{
     if (!files || files.length === 0) {{
@@ -51,6 +53,7 @@
     if (info.type === 'none') {{
       summary.textContent = 'No file selected.';
       button.disabled = true;
+      rulesButton.disabled = true;
       return;
     }}
     let label;
@@ -60,6 +63,7 @@
     else label = 'Multiple files';
     summary.textContent = label + ' selected (' + info.count + ' item(s)). Examples: ' + info.names.join(', ');
     button.disabled = false;
+    rulesButton.disabled = false;
   }}
 
   inputFiles.addEventListener('change', function() {{

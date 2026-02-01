@@ -5,8 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import ensure_checker_import_path
 from .routes import (
-    analyze_router,
-    check_router,
     health_router,
     review_router,
     root_router,
@@ -32,8 +30,6 @@ app.add_middleware(
 # Register routes
 app.include_router(root_router)
 app.include_router(health_router)
-app.include_router(check_router)
-app.include_router(analyze_router)
 app.include_router(review_router)
 
 

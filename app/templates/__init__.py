@@ -241,7 +241,7 @@ def render_review_multi_results(
             graph_lines.append("</li>")
         graph_lines.append("</ul>")
         dependency_graph_block = f"""<details class="collapsible-section" open>
-  <summary>Dependency relationships</summary>
+  <summary>Dependency Relationships</summary>
   <div class="collapsible-content">
   <div class="section">
     {''.join(graph_lines)}
@@ -325,7 +325,7 @@ def render_review_multi_results(
         files_block = "<p>No files analyzed.</p>"
     else:
         files_block = f"""<details class="collapsible-section" open>
-  <summary>Static checker's file issues</summary>
+  <summary>Standard File Issues</summary>
   <div class="collapsible-content">
 {files_block}
   </div>
