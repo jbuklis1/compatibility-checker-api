@@ -55,9 +55,9 @@ if errorlevel 1 (
 REM Start uvicorn - use uvicorn.exe or python -m uvicorn
 echo ==^> Starting uvicorn
 if exist "%VENV_UVICORN%" (
-  "%VENV_UVICORN%" app.main:app --reload --reload-exclude ".venv" --host 0.0.0.0 --port 8000
+  "%VENV_UVICORN%" app.main:app --reload --reload-dir app --reload-dir cross_platform_checker --host 0.0.0.0 --port 8000
 ) else (
-  "%VENV_PYTHON%" -m uvicorn app.main:app --reload --reload-exclude ".venv" --host 0.0.0.0 --port 8000
+  "%VENV_PYTHON%" -m uvicorn app.main:app --reload --reload-dir app --reload-dir cross_platform_checker --host 0.0.0.0 --port 8000
 )
 
 exit /b 0
