@@ -20,4 +20,4 @@ echo "==> Installing dependencies"
 "$VENV_DIR/bin/pip" install -q -r requirements.txt
 
 echo "==> Starting uvicorn"
-exec "$VENV_DIR/bin/uvicorn" app.main:app --reload --host 0.0.0.0 --port 8000
+exec "$VENV_DIR/bin/uvicorn" app.main:app --reload --reload-exclude ".venv" --host 0.0.0.0 --port 8000
