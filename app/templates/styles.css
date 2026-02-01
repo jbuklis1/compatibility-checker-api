@@ -202,3 +202,108 @@ pre {
   font-family: inherit;
   font-size: inherit;
 }
+
+/* Collapsible section styles */
+.collapsible-section,
+.file-collapsible {
+  margin-top: 1.5rem;
+  padding: 0;
+  background: #f8fafc;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+}
+
+.collapsible-section summary,
+.file-collapsible summary {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
+}
+
+.collapsible-section summary::-webkit-details-marker,
+.file-collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-section summary::before,
+.file-collapsible summary::before {
+  content: "▶";
+  font-size: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.collapsible-section[open] summary::before,
+.file-collapsible[open] summary::before {
+  content: "▼";
+}
+
+.collapsible-section .collapsible-content,
+.file-collapsible .collapsible-content {
+  padding: 0 1rem 1rem 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.collapsible-section .collapsible-content .section,
+.file-collapsible .collapsible-content .section {
+  margin-top: 1rem;
+}
+
+.file-collapsible summary .file-name {
+  flex: 1;
+}
+
+.file-collapsible summary .file-path-folder,
+.file-collapsible summary .file-path-lang {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.file-collapsible summary .file-path-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.dependency-graph .file-path-folder,
+.dependency-graph .file-path-lang {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.dependency-graph .file-path-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.file-collapsible summary .file-counts {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Multi-file results styles */
+.file-group {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+}
+
+.file-group h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+}
+
+.file-group .issue {
+  margin-left: 1rem;
+  margin-top: 0.75rem;
+}

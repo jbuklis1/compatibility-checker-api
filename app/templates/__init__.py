@@ -2,11 +2,13 @@
 
 import html
 import json
+import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
 from ..ai_status import get_ai_status
+from ..schemas import FileIssues
 
 TEMPLATES_DIR = Path(__file__).parent
 
@@ -88,20 +90,31 @@ def render_review_results(
   </div>"""
     if not issues_block:
         issues_block = "<p>No issues found.</p>"
+    issues_block = f"""<details class="collapsible-section" open>
+  <summary>Issues</summary>
+  <div class="collapsible-content">{issues_block}
+  </div>
+</details>"""
     suggestions_block = ""
     if ai_suggestions:
-        suggestions_block = f"""
+        suggestions_block = f"""<details class="collapsible-section" open>
+  <summary>AI fix suggestions</summary>
+  <div class="collapsible-content">
   <div class="section">
-    <h2>AI fix suggestions</h2>
     <pre>{esc(ai_suggestions)}</pre>
-  </div>"""
+  </div>
+  </div>
+</details>"""
     tests_block = ""
     if generated_tests:
-        tests_block = f"""
+        tests_block = f"""<details class="collapsible-section" open>
+  <summary>Generated tests</summary>
+  <div class="collapsible-content">
   <div class="section">
-    <h2>Generated tests</h2>
     <pre>{esc(generated_tests)}</pre>
-  </div>"""
+  </div>
+  </div>
+</details>"""
     
     # Prepare JSON data for client-side caching
     results_data = {
@@ -138,4 +151,204 @@ def render_review_results(
         suggestions_block=suggestions_block,
         tests_block=tests_block,
         results_json=results_json,
+    )
+
+
+def render_review_multi_results(
+    source_path: str,
+    source_type: str,
+    files: List[FileIssues],
+    cross_file_insights: Optional[str],
+    dependency_graph: Dict[str, Any],
+    ai_fix_suggestions: Optional[str],
+    error: Optional[str] = None,
+    report_id: Optional[str] = None,
+    source_root: Optional[Path] = None,
+) -> str:
+    """Render the multi-file review results template."""
+    esc = html.escape
+    
+    error_block = f'<div class="form-error">{esc(error)}</div>' if error else ""
+    
+    total_files = len(files)
+    total_issues = sum(len(f.issues) for f in files)
+
+    # Compute display_root for relative paths (used by dependency graph and files block)
+    file_paths = [Path(f.file_path).resolve() for f in files]
+    display_root = None
+    if source_root:
+        display_root = Path(source_root).resolve()
+    if not display_root and file_paths:
+        try:
+            display_root = Path(os.path.commonpath([str(p) for p in file_paths]))
+            if display_root.is_file():
+                display_root = display_root.parent
+            def _child_dirs_containing_files(parent: Path) -> List[Path]:
+                return [d for d in parent.iterdir() if d.is_dir() and any(str(f).startswith(str(d) + os.sep) or str(f).startswith(str(d) + "/") for f in file_paths)]
+            while display_root.parent.exists():
+                parent = display_root.parent
+                if parent.name == "extracted":
+                    display_root = parent
+                    break
+                children_with_files = _child_dirs_containing_files(parent)
+                if len(children_with_files) != 1 or children_with_files[0] != display_root:
+                    break
+                display_root = parent
+        except (ValueError, TypeError):
+            pass
+    
+    # Cross-file insights block (collapsible)
+    cross_file_insights_block = ""
+    if cross_file_insights:
+        cross_file_insights_block = f"""<details class="collapsible-section" open>
+  <summary>Cross-File Compatibility Insights</summary>
+  <div class="collapsible-content">
+  <div class="section">
+    <pre>{esc(cross_file_insights)}</pre>
+  </div>
+  </div>
+</details>"""
+    
+    # Dependency graph block (collapsible)
+    dependency_graph_block = ""
+    if dependency_graph:
+        graph_lines = ["<ul class=\"dependency-graph\">"]
+        for file_path, data in list(dependency_graph.items())[:50]:  # Limit display
+            fp = Path(file_path).resolve()
+            if display_root and str(fp).startswith(str(display_root)):
+                file_display = str(fp.relative_to(display_root))
+            else:
+                file_display = fp.name
+            p_display = Path(file_display)
+            if p_display.parent != Path("."):
+                folder_part = str(p_display.parent).replace("\\", "/") + "/"
+                name_part = p_display.name
+            else:
+                folder_part, name_part = "", file_display
+            language = data.get("language", "unknown")
+            file_name_html = f'<span class="file-path-folder">{esc(folder_part)}</span><span class="file-path-name">{esc(name_part)}</span> <span class="file-path-lang">({esc(language)})</span>'
+            imports = data.get("imports", [])
+            imported_by = data.get("imported_by", [])
+            graph_lines.append(f"<li>{file_name_html}")
+            if imports:
+                import_names = [esc(Path(imp).name) for imp in imports[:5]]
+                graph_lines.append(f"<br>  Imports: {', '.join(import_names)}")
+            if imported_by:
+                importer_names = [esc(Path(imp).name) for imp in imported_by[:5]]
+                graph_lines.append(f"<br>  Imported by: {', '.join(importer_names)}")
+            if not imports and not imported_by:
+                graph_lines.append("<br>  <em>(no dependencies)</em>")
+            graph_lines.append("</li>")
+        graph_lines.append("</ul>")
+        dependency_graph_block = f"""<details class="collapsible-section" open>
+  <summary>Dependency relationships</summary>
+  <div class="collapsible-content">
+  <div class="section">
+    {''.join(graph_lines)}
+  </div>
+  </div>
+</details>"""
+    
+    # AI fix suggestions block (collapsible)
+    ai_fix_suggestions_block = ""
+    if ai_fix_suggestions:
+        ai_fix_suggestions_block = f"""<details class="collapsible-section" open>
+  <summary>Group-Level AI Fix Suggestions</summary>
+  <div class="collapsible-content">
+  <div class="section">
+    <pre>{esc(ai_fix_suggestions)}</pre>
+  </div>
+  </div>
+</details>"""
+    
+    # Files block - issues grouped by file (collapsible section with per-file collapsibles)
+    files_block = ""
+    for file_issues in files:
+        fp = Path(file_issues.file_path).resolve()
+        if display_root and str(fp).startswith(str(display_root)):
+            file_display = str(fp.relative_to(display_root))
+        else:
+            file_display = fp.name
+        # Split into folder and filename for styling (folder lighter, filename prominent)
+        p_display = Path(file_display)
+        if p_display.parent != Path("."):
+            folder_part = str(p_display.parent).replace("\\", "/") + "/"
+            name_part = p_display.name
+        else:
+            folder_part, name_part = "", file_display
+        issues = file_issues.issues
+        language = file_issues.language or "unknown"
+        error_count = sum(1 for i in issues if i.severity == "ERROR")
+        warning_count = sum(1 for i in issues if i.severity == "WARNING")
+        
+        if issues:
+            counts_parts = []
+            if error_count:
+                counts_parts.append(f"{error_count} error(s)")
+            if warning_count:
+                counts_parts.append(f"{warning_count} warning(s)")
+            counts_text = ", ".join(counts_parts) if counts_parts else f"{len(issues)} issue(s)"
+            summary_counts = f'<span class="file-counts">{counts_text}</span>'
+            issues_html = ""
+            for i in issues:
+                cls = "error" if i.severity == "ERROR" else "warning" if i.severity == "WARNING" else "info"
+                issues_html += f"""
+    <div class="issue {cls}">
+      <div class="issue-meta">Line {i.line_number} · {esc(i.category)} · {esc(i.severity)}</div>
+      <div class="issue-msg">{esc(i.message)}</div>
+      <div class="issue-code">Code: {esc(i.code)}</div>
+      <div class="issue-fix">Fix: {esc(i.suggestion)}</div>
+    </div>"""
+            file_name_html = f'<span class="file-path-folder">{esc(folder_part)}</span><span class="file-path-name">{esc(name_part)}</span> <span class="file-path-lang">({esc(language)})</span>'
+            files_block += f"""
+  <details class="file-collapsible">
+    <summary><span class="file-name">{file_name_html}</span>{summary_counts}</summary>
+    <div class="collapsible-content">
+      <div class="file-group">
+{issues_html}
+      </div>
+    </div>
+  </details>"""
+        else:
+            file_name_html = f'<span class="file-path-folder">{esc(folder_part)}</span><span class="file-path-name">{esc(name_part)}</span> <span class="file-path-lang">({esc(language)})</span>'
+            files_block += f"""
+  <details class="file-collapsible">
+    <summary><span class="file-name">{file_name_html}</span><span class="file-counts">No issues found.</span></summary>
+    <div class="collapsible-content">
+      <div class="file-group">
+    <p>No issues found.</p>
+      </div>
+    </div>
+  </details>"""
+    
+    if not files_block:
+        files_block = "<p>No files analyzed.</p>"
+    else:
+        files_block = f"""<details class="collapsible-section" open>
+  <summary>Static checker's file issues</summary>
+  <div class="collapsible-content">
+{files_block}
+  </div>
+</details>"""
+
+    source_path_escaped = quote(source_path, safe="")
+    # For uploads we use report_id so download works without a filesystem path
+    if report_id:
+        download_url = f"/review/multi/download?source_type=upload&report_id={quote(report_id, safe='')}"
+    else:
+        download_url = f"/review/multi/download?source_path={source_path_escaped}&source_type={quote(source_type, safe='')}"
+
+    return render_template(
+        "review_multi_results.html",
+        source_path=esc(source_path),
+        source_path_escaped=source_path_escaped,
+        source_type=esc(source_type),
+        download_url=download_url,
+        error_block=error_block,
+        total_files=total_files,
+        total_issues=total_issues,
+        cross_file_insights_block=cross_file_insights_block,
+        dependency_graph_block=dependency_graph_block,
+        ai_fix_suggestions_block=ai_fix_suggestions_block,
+        files_block=files_block,
     )
