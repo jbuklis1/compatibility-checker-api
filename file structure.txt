@@ -1,0 +1,59 @@
+compatibility-checker-api/
+│
+├── README.md                 # Project documentation
+├── requirements.txt          # Python dependencies
+├── setup_and_run.sh          # Setup venv and run server
+├── .env.example              # Example environment config (TOGETHER_API_KEY)
+├── .env                      # Local env (gitignored)
+│
+├── app/                      # FastAPI application
+│   ├── __init__.py
+│   ├── main.py               # App entry point, route registration
+│   ├── config.py             # Env/config, checker import path
+│   ├── ai_status.py          # AI availability banner
+│   ├── report_formatter.py   # Text report formatting (single & multi-file)
+│   ├── schemas.py            # Pydantic request/response models
+│   ├── startup.py            # Startup validation
+│   ├── utils.py              # run_check() helper
+│   │
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── root.py           # GET / (home page)
+│   │   ├── health.py         # GET /health
+│   │   └── review.py         # GET /review, POST /review, /review/upload, /review/multi, downloads
+│   │
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── ai.py             # Together.ai: suggest_fixes, generate_tests, analyze_group_relationships
+│   │   ├── checker.py        # Wrapper around cross_platform_checker
+│   │   ├── file_extractor.py # Extract from folder/zip/UploadFile
+│   │   └── relationship_detector.py  # Build dependency graph from imports
+│   │
+│   └── templates/
+│       ├── __init__.py       # render_review_form, render_review_results, render_review_multi_results
+│       ├── base.html         # Layout with AI status banner
+│       ├── root.html         # Home page
+│       ├── review_form.html  # Upload form (files/folder/zip)
+│       ├── review_results.html      # Single-file results
+│       ├── review_multi_results.html # Multi-file results
+│       └── styles.css        # Shared styles
+│
+└── cross_platform_checker/   # Rule-based checker library
+    ├── __init__.py
+    ├── README.md
+    ├── checker_base.py       # Base checker class
+    ├── issue.py              # Issue model
+    ├── main_checker.py       # Orchestrator, language dispatch, import resolution
+    ├── reporter.py           # Issue reporting
+    ├── utils.py              # detect_language, etc.
+    │
+    └── checkers/             # Language-specific checkers
+        ├── __init__.py
+        ├── python_checker.py
+        ├── javascript_checker.py
+        ├── cpp_checker.py
+        ├── path_checker.py   # Path handling (os.path, pathlib)
+        ├── file_checker.py   # File I/O
+        ├── system_checker.py # Subprocess, system calls
+        ├── env_checker.py    # Environment variables
+        └── api_checker.py    # Platform-specific APIs
