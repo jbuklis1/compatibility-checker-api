@@ -33,24 +33,18 @@ FastAPI + Uvicorn API that runs rule-based cross-platform checks, plus Together.
    ./setup_and_run.sh
    ```
 
+   On Windows:
+
+   ```batch
+   cd compatibility-checker-api
+   setup_and_run.bat
+   ```
+
 ## Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Liveness check |
-| POST | `/check` | Rules-only analysis |
-| POST | `/analyze` | Rules + AI suggestions + generated tests |
-
-## Request body
-
-- **Option A (raw code):** `{ "code": "...", "language": "python", "filename": "example.py" }`
-- **Option B (file path):** `{ "file_path": "/absolute/path/to/file.py" }`
-
-Use `language` values like `python`, `cpp`, `c`, `javascript`, etc.
-
-## Response
-
-- `/check`: `{ "issues": [ ... ] }`
-- `/analyze`: `{ "issues": [ ... ], "ai_fix_suggestions": "...", "generated_tests": "..." }`
+| GET | `/review` | Upload form for file/folder analysis (with AI or rules-only) |
 
 OpenAPI docs: `http://localhost:8000/docs`.
