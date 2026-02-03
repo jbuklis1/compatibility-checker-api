@@ -1,8 +1,7 @@
 """Startup validation and configuration checks."""
 
-from pathlib import Path
-
 from .config import get_together_api_key
+from deps import Path
 
 
 def validate_config() -> None:

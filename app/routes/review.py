@@ -1,13 +1,23 @@
 """Review route (form-based file analysis)."""
 
-import time
-import uuid
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
-from fastapi.responses import HTMLResponse, Response
-
+from deps import (
+    APIRouter,
+    Dict,
+    File,
+    Form,
+    HTMLResponse,
+    HTTPException,
+    List,
+    Optional,
+    Path,
+    Query,
+    Response,
+    Tuple,
+    UploadFile,
+    time,
+    uuid,
+)
+from fastapi.responses import RedirectResponse
 from ..report_formatter import format_multi_file_report, format_text_report
 from ..schemas import (
     AnalyzeRequest,
@@ -264,8 +274,14 @@ def review_multi(req: MultiFileAnalyzeRequest) -> MultiFileAnalyzeResponse:
             cleanup_temp_files(temp_dir)
 
 
-@router.post("/review/upload", response_class=HTMLResponse)
-def review_upload(
+@router.get("/review/results")
+def review_results_get():
+    """Redirect GET /review/results to the review form."""
+    return RedirectResponse(url="/review", status_code=302)
+
+
+@router.post("/review/results", response_class=HTMLResponse)
+def review_results_post(
     files: List[UploadFile] = File(...),
     mode: str = Form(default="ai"),
 ) -> str:

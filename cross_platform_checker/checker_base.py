@@ -2,8 +2,7 @@
 Base checker class for cross-platform compatibility issues.
 """
 
-from pathlib import Path
-from typing import List, Optional
+from deps import List, Optional, Path
 
 from .issue import Issue, Severity
 from .utils import detect_language, is_comment

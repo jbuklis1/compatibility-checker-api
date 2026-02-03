@@ -1,9 +1,6 @@
 """Format analysis results as human-readable text."""
 
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-
+from deps import Any, Dict, List, Optional, Path, datetime
 from .schemas import FileIssues, IssueOut
 
 

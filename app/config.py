@@ -1,13 +1,16 @@
 """Configuration from environment."""
 
-import os
-from pathlib import Path
+import sys
+from pathlib import Path as _Path
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+_app_dir = _Path(__file__).resolve().parent
+_project_root = _app_dir.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+from deps import load_dotenv, os, Path
+
+load_dotenv()
 
 
 def get_together_api_key() -> str:

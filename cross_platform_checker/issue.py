@@ -2,8 +2,7 @@
 Issue data models for cross-platform compatibility checker.
 """
 
-from dataclasses import dataclass
-from enum import Enum
+from deps import Enum, dataclass
 
 
 class Severity(Enum):

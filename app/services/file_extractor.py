@@ -1,11 +1,7 @@
 """File extraction service: handles folders and zip files."""
 
-import tempfile
-import zipfile
-from pathlib import Path
-from typing import List, Union
-
-from starlette.datastructures import UploadFile
+from deps import List, Path, Union, tempfile, zipfile
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 
 # Source file extensions to include
@@ -24,7 +20,7 @@ EXCLUDE_DIRS = {
 }
 
 
-def extract_files(source: Union[str, Path, UploadFile]) -> List[Path]:
+def extract_files(source: Union[str, Path, StarletteUploadFile]) -> List[Path]:
     """Extract source files from folder path, zip file path, or uploaded zip file.
     
     Args:
@@ -33,7 +29,7 @@ def extract_files(source: Union[str, Path, UploadFile]) -> List[Path]:
     Returns:
         List of absolute paths to source files found
     """
-    if isinstance(source, UploadFile):
+    if isinstance(source, StarletteUploadFile):
         return _extract_from_uploaded_zip(source)
     elif isinstance(source, (str, Path)):
         path = Path(source)
@@ -73,7 +69,7 @@ def _extract_from_zip_path(zip_path: Path) -> List[Path]:
         return _extract_from_folder(temp_dir)
 
 
-def _extract_from_uploaded_zip(upload_file: UploadFile) -> List[Path]:
+def _extract_from_uploaded_zip(upload_file: StarletteUploadFile) -> List[Path]:
     """Extract source files from an uploaded zip file."""
     temp_dir = Path(tempfile.mkdtemp(prefix='compat_checker_'))
     
@@ -108,7 +104,7 @@ def cleanup_temp_files(temp_dir: Path) -> None:
         pass  # Ignore cleanup errors
 
 
-def build_temp_tree_from_uploads(files: List[UploadFile]) -> Path:
+def build_temp_tree_from_uploads(files: List[StarletteUploadFile]) -> Path:
     """Create a temporary directory tree from uploaded files.
 
     Each UploadFile is written under a temp root using its filename, which may

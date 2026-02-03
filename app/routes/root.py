@@ -1,8 +1,6 @@
 """Root route."""
 
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
-
+from deps import APIRouter, HTMLResponse
 from ..templates import render_template
 
 router = APIRouter()

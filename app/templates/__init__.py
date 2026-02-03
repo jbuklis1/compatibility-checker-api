@@ -1,13 +1,7 @@
 """Template rendering utilities."""
 
-import html
-import json
-import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional
-from urllib.parse import quote
-
 from ..ai_status import get_ai_status
+from deps import Any, Dict, html, json, List, Optional, os, Path, quote
 from ..schemas import FileIssues
 
 TEMPLATES_DIR = Path(__file__).parent

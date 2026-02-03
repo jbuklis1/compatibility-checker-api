@@ -2,8 +2,7 @@
 Report generation for cross-platform compatibility checker.
 """
 
-from pathlib import Path
-from typing import List, Dict
+from deps import Dict, List, Path
 
 from .issue import Issue, Severity
 

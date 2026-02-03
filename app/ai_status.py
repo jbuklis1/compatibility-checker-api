@@ -1,8 +1,6 @@
 """AI service status checking."""
 
-import time
-from typing import Dict, Optional
-
+from deps import Dict, Optional, OpenAI, time
 from .config import get_together_api_key, get_together_model
 
 # Cache status for 30 seconds to avoid excessive API calls
@@ -28,12 +26,10 @@ def get_ai_status() -> Dict[str, any]:
     }
     
     # Check if openai module is available
-    try:
-        import openai
-        status["openai_available"] = True
-    except ImportError:
+    if OpenAI is None:
         status["reason"] = "openai package not installed"
         return status
+    status["openai_available"] = True
     
     # Check if API key is set
     key = get_together_api_key()
@@ -54,7 +50,7 @@ def get_ai_status() -> Dict[str, any]:
     
     # Actually test the API key with a minimal request
     try:
-        client = openai.OpenAI(api_key=key, base_url="https://api.together.xyz/v1")
+        client = OpenAI(api_key=key, base_url="https://api.together.xyz/v1")
         # Make a minimal test request
         test_response = client.chat.completions.create(
             model=status["model"],

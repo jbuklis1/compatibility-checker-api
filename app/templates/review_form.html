@@ -2,25 +2,32 @@
 <p>Select one or more files, a zip archive, or a folder. The app will automatically detect what you selected and run the appropriate analysis.</p>
 {error_block}
 
-<form method="post" action="/review/upload" enctype="multipart/form-data" id="review-form">
-  <div class="upload-choices">
-    <div>
-      <label for="source-files">Select file(s) or archive</label>
-      <input type="file" id="source-files" name="files" multiple accept=".py,.js,.ts,.jsx,.tsx,.c,.cpp,.h,.hpp,.zip">
+<div id="review-form-container">
+  <form method="post" action="/review/results" enctype="multipart/form-data" id="review-form">
+    <input type="hidden" name="mode" id="form-mode" value="ai">
+    <div class="upload-choices">
+      <div>
+        <label for="source-files">Select file(s) or archive</label>
+        <input type="file" id="source-files" name="files" multiple accept=".py,.js,.ts,.jsx,.tsx,.c,.cpp,.h,.hpp,.zip">
+      </div>
+      <div>
+        <label for="source-folder">Or select a folder</label>
+        <input type="file" id="source-folder" name="files" multiple webkitdirectory>
+      </div>
     </div>
     <div>
-      <label for="source-folder">Or select a folder</label>
-      <input type="file" id="source-folder" name="files" multiple webkitdirectory>
+      <small id="selection-summary">No selection yet.</small>
     </div>
-  </div>
-  <div>
-    <small id="selection-summary">No selection yet.</small>
-  </div>
-  <div class="submit-buttons">
-    <button type="submit" name="mode" value="ai" id="analyze-btn" disabled>Analyze (with AI)</button>
-    <button type="submit" name="mode" value="rules" id="analyze-rules-btn" disabled>Analyze (rules only)</button>
-  </div>
-</form>
+    <div class="submit-buttons">
+      <button type="submit" id="analyze-btn" disabled>Analyze (with AI)</button>
+      <button type="submit" id="analyze-rules-btn" disabled>Analyze (rules only)</button>
+    </div>
+  </form>
+</div>
+<div id="analysis-progress" class="analysis-progress" aria-live="polite" hidden>
+  <div class="analysis-progress-spinner" aria-hidden="true"></div>
+  <p class="analysis-progress-message">Analysis in progress… This may take a moment when using AI.</p>
+</div>
 
 <script>
 (function() {{
@@ -82,6 +89,19 @@
     }} else {{
       updateSummary(inputFiles.files);
     }}
+  }});
+
+  const form = document.getElementById('review-form');
+  const formContainer = document.getElementById('review-form-container');
+  const progressEl = document.getElementById('analysis-progress');
+  const modeInput = document.getElementById('form-mode');
+  button.addEventListener('click', function() {{ modeInput.value = 'ai'; }});
+  rulesButton.addEventListener('click', function() {{ modeInput.value = 'rules'; }});
+  form.addEventListener('submit', function() {{
+    formContainer.hidden = true;
+    progressEl.hidden = false;
+    button.disabled = true;
+    rulesButton.disabled = true;
   }});
 }})();
 </script>

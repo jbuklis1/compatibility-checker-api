@@ -1,10 +1,7 @@
 """Checker service: wraps cross_platform_checker and maps to API models."""
 
-import tempfile
-from pathlib import Path
-from typing import Dict, List, Tuple
-
 from ..config import ensure_checker_import_path
+from deps import Dict, List, Path, Tuple, tempfile
 from ..schemas import IssueOut
 
 ensure_checker_import_path()

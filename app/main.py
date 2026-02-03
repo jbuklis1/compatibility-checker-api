@@ -1,9 +1,7 @@
 """FastAPI app: main entry point."""
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from .config import ensure_checker_import_path
+from deps import CORSMiddleware, FastAPI
 from .routes import (
     health_router,
     review_router,

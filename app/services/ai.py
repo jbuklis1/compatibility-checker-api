@@ -1,17 +1,13 @@
 """AI service: Together.ai for fix suggestions and test generation."""
 
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-
 from ..config import get_together_api_key, get_together_model
+from deps import Any, Dict, List, OpenAI, Optional, Path
 from ..schemas import IssueOut
 
 
 def _client() -> Optional[Any]:
     """Return OpenAI-compatible client for Together.ai, or None if unavailable."""
-    try:
-        from openai import OpenAI
-    except ImportError:
+    if OpenAI is None:
         return None
     key = get_together_api_key()
     if not key:

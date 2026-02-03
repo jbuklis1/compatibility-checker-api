@@ -2,8 +2,7 @@
 Environment variable checks.
 """
 
-import re
-from typing import List
+from deps import List, re
 
 from ..checker_base import BaseChecker
 from ..issue import Severity

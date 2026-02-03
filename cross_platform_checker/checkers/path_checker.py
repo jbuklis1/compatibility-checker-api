@@ -2,8 +2,7 @@
 Path-related cross-platform compatibility checks.
 """
 
-import re
-from typing import List
+from deps import List, re
 
 from ..checker_base import BaseChecker
 from ..issue import Severity
@@ -16,7 +15,6 @@ class PathChecker(BaseChecker):
         """Run path-related checks."""
         self._check_path_separators()
         self._check_hardcoded_paths()
-        self._check_case_sensitivity()
     
     def _check_path_separators(self):
         """Check for hardcoded path separators."""
@@ -72,27 +70,3 @@ class PathChecker(BaseChecker):
                             "Use environment variables or platform APIs (os.path.expanduser, getenv('HOME'), etc.)",
                             "HARDCODED_PATH"
                         )
-    
-    def _check_case_sensitivity(self):
-        """Check for case sensitivity issues."""
-        import_patterns = [
-            (r'import\s+(\w+)', 'python'),
-            (r'#include\s*[<"](\w+)[>"]', 'cpp'),
-            (r'require\(["\']([^"\']+)["\']\)', 'javascript'),
-        ]
-        
-        for i, line in enumerate(self.lines, 1):
-            for pattern, lang in import_patterns:
-                if lang == self.language:
-                    match = re.search(pattern, line)
-                    if match:
-                        module = match.group(1)
-                        # Check for mixed case that might cause issues
-                        if module != module.lower() and module != module.upper():
-                            self._add_issue(
-                                Severity.WARNING, i, 0,
-                                f"Case-sensitive import/module name: {module}",
-                                line.strip(),
-                                "Ensure consistent casing across all platforms",
-                                "CASE_SENSITIVITY"
-                            )

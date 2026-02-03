@@ -2,8 +2,7 @@
 Utility functions for cross-platform compatibility checker.
 """
 
-from pathlib import Path
-from typing import Optional
+from deps import Optional, Path
 
 
 def detect_language(file_path: Path) -> str:

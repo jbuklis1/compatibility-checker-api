@@ -1,9 +1,7 @@
 """Relationship detector: analyzes imports and dependencies between files."""
 
-from pathlib import Path
-from typing import Dict, List, Set
-
 from ..config import ensure_checker_import_path
+from deps import Dict, List, Path, Set
 
 ensure_checker_import_path()
 

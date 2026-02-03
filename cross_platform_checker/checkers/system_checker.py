@@ -2,7 +2,7 @@
 System call checks.
 """
 
-from typing import List
+from deps import List
 
 from ..checker_base import BaseChecker
 from ..issue import Severity

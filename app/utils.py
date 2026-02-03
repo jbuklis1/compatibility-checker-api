@@ -1,11 +1,7 @@
 """Utility functions for the API."""
 
-from pathlib import Path
-from typing import List, Optional, Tuple
-
-from fastapi import HTTPException
-
 from .config import ensure_checker_import_path
+from deps import HTTPException, List, Optional, Path, Tuple
 from .schemas import AnalyzeRequest, IssueOut
 from .services import CheckerService
 

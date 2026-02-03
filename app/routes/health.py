@@ -1,6 +1,6 @@
 """Health check route."""
 
-from fastapi import APIRouter
+from deps import APIRouter
 
 router = APIRouter()
 

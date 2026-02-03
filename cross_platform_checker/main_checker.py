@@ -2,8 +2,7 @@
 Main checker class that coordinates all checkers.
 """
 
-from pathlib import Path
-from typing import Dict, List, Optional, Any
+from deps import Any, Dict, List, Optional, Path
 
 from .issue import Issue, Severity
 from .utils import detect_language
