@@ -2,10 +2,12 @@
 Platform-specific API checks.
 """
 
-from deps import List, re
+import re
+from typing import List
 
 from ..checker_base import BaseChecker
 from ..issue import Severity
+from ..utils import position_inside_string_literal
 
 
 class APIChecker(BaseChecker):
@@ -44,20 +46,21 @@ class APIChecker(BaseChecker):
                 
             for platform, apis in platform_apis.items():
                 for api in apis:
-                    # Use word boundaries to avoid false positives
                     if api.endswith('_'):
                         pattern = r'\b' + re.escape(api)
                     else:
                         pattern = r'\b' + re.escape(api) + r'\s*\('
-                    
-                    if re.search(pattern, line, re.IGNORECASE):
+                    for m in re.finditer(pattern, line, re.IGNORECASE):
+                        if position_inside_string_literal(line, m.start()):
+                            continue
                         self._add_issue(
-                            Severity.ERROR, i, 0,
+                            Severity.ERROR, i, m.start(),
                             f"Platform-specific API detected: {api} ({platform})",
                             line.strip(),
-                            f"Use cross-platform alternatives or add platform-specific guards (#ifdef, if platform.system(), etc.)",
-                            "PLATFORM_API"
+                            "Use cross-platform alternatives or add platform-specific guards (#ifdef, if platform.system(), etc.)",
+                            "PLATFORM_API",
                         )
+                        break
     
     def _check_library_imports(self):
         """Check for platform-specific library imports."""
@@ -74,16 +77,20 @@ class APIChecker(BaseChecker):
         }
         
         for i, line in enumerate(self.lines, 1):
+            if self._is_comment(line):
+                continue
             libs = platform_libs.get(self.language, [])
             for lib in libs:
-                if lib in line and not self._is_comment(line):
+                idx = line.find(lib)
+                if idx != -1 and not position_inside_string_literal(line, idx):
                     self._add_issue(
-                        Severity.ERROR, i, 0,
+                        Severity.ERROR, i, idx,
                         f"Platform-specific library import: {lib}",
                         line.strip(),
                         "Use cross-platform libraries or add platform guards",
-                        "LIBRARY_IMPORT"
+                        "LIBRARY_IMPORT",
                     )
+                    break
     
     def _check_threading_apis(self):
         """Check for threading API issues."""
@@ -94,26 +101,31 @@ class APIChecker(BaseChecker):
         ]
         
         for i, line in enumerate(self.lines, 1):
+            if self._is_comment(line):
+                continue
             for pattern, desc in threading_patterns:
-                if re.search(pattern, line) and not self._is_comment(line):
+                m = re.search(pattern, line)
+                if m and not position_inside_string_literal(line, m.start()):
                     self._add_issue(
-                        Severity.ERROR, i, 0,
+                        Severity.ERROR, i, m.start(),
                         f"{desc} detected",
                         line.strip(),
                         "Use std::thread (C++11+), threading module (Python), or cross-platform threading libraries",
-                        "THREADING"
+                        "THREADING",
                     )
+                    break
     
     def _check_network_code(self):
         """Check for network-related issues."""
         for i, line in enumerate(self.lines, 1):
-            if 'WSAStartup' in line:
+            idx = line.find("WSAStartup")
+            if idx != -1 and not position_inside_string_literal(line, idx):
                 self._add_issue(
-                    Severity.ERROR, i, 0,
+                    Severity.ERROR, i, idx,
                     "Windows-specific socket initialization (WSAStartup) detected",
                     line.strip(),
                     "Use cross-platform socket APIs (BSD sockets work on all platforms)",
-                    "NETWORK"
+                    "NETWORK",
                 )
     
     def _check_gui_code(self):
@@ -124,13 +136,16 @@ class APIChecker(BaseChecker):
         }
         
         for i, line in enumerate(self.lines, 1):
+            if self._is_comment(line):
+                continue
             for category, frameworks in gui_frameworks.items():
                 for framework in frameworks:
-                    if framework in line and not self._is_comment(line):
+                    idx = line.find(framework)
+                    if idx != -1 and not position_inside_string_literal(line, idx):
                         self._add_issue(
-                            Severity.ERROR, i, 0,
+                            Severity.ERROR, i, idx,
                             f"Platform-specific GUI framework: {framework}",
                             line.strip(),
                             "Use cross-platform GUI frameworks (Qt, wxWidgets, Tkinter, etc.)",
-                            "GUI"
+                            "GUI",
                         )

@@ -7,6 +7,7 @@ from typing import List
 
 from ..checker_base import BaseChecker
 from ..issue import Severity
+from ..utils import position_inside_string_literal
 
 
 class EnvChecker(BaseChecker):
@@ -23,6 +24,8 @@ class EnvChecker(BaseChecker):
             if self._is_comment(line):
                 continue
             for m in re.finditer(r"%[A-Z_]+%", line):
+                if position_inside_string_literal(line, m.start()):
+                    continue
                 if self.candidates is not None:
                     self._add_candidate(
                         Severity.ERROR,
@@ -60,7 +63,7 @@ class EnvChecker(BaseChecker):
             for var, suggestion in hardcoded_vars.items():
                 pattern = r"\b" + re.escape(var) + r"\b"
                 m = re.search(pattern, line)
-                if m:
+                if m and not position_inside_string_literal(line, m.start()):
                     if self.candidates is not None:
                         self._add_candidate(
                             Severity.WARNING,

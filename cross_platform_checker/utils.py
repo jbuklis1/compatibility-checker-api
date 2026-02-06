@@ -72,9 +72,10 @@ def looks_like_file_path(s: str) -> bool:
         return True
     if re.search(r"[A-Za-z]:\\", s):
         return True
+    # Generic "segment/segment" (e.g. "section/key") - do NOT treat as path.
     if "://" in s:
         return False
-    return True
+    return False
 
 
 def has_variable_path_argument(line: str, language: str = "python") -> bool:
@@ -105,6 +106,26 @@ def detect_language(file_path: Path) -> str:
         '.rs': 'rust',
     }
     return lang_map.get(ext, 'unknown')
+
+
+def position_inside_string_literal(line: str, pos: int) -> bool:
+    """True if position pos in line is inside a quoted string literal (not code)."""
+    if pos < 0 or pos >= len(line):
+        return False
+    in_string = False
+    quote_char = None
+    i = 0
+    while i <= pos and i < len(line):
+        ch = line[i]
+        if ch in ('"', "'") and (i == 0 or line[i - 1] != "\\"):
+            if not in_string:
+                in_string = True
+                quote_char = ch
+            elif ch == quote_char:
+                in_string = False
+                quote_char = None
+        i += 1
+    return in_string
 
 
 def is_comment(line: str) -> bool:

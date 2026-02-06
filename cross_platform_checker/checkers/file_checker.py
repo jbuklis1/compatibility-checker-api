@@ -2,10 +2,12 @@
 File operation checks.
 """
 
-from deps import List, re
+import re
+from typing import List
 
 from ..checker_base import BaseChecker
 from ..issue import Severity
+from ..utils import position_inside_string_literal
 
 
 class FileChecker(BaseChecker):
@@ -34,17 +36,23 @@ class FileChecker(BaseChecker):
                             )
     
     def _check_file_locking(self):
-        """Check for file locking issues."""
+        """Check for file locking issues (only when not inside a string literal)."""
         for i, line in enumerate(self.lines, 1):
-            if 'flock' in line or 'fcntl' in line:
-                if not self._is_comment(line):
+            if self._is_comment(line):
+                continue
+            for token in ("flock", "fcntl"):
+                idx = line.find(token)
+                if idx != -1 and not position_inside_string_literal(line, idx):
                     self._add_issue(
-                        Severity.WARNING, i, 0,
+                        Severity.WARNING,
+                        i,
+                        idx,
                         "Unix-specific file locking API detected",
                         line.strip(),
                         "Use cross-platform file locking or platform-specific guards",
-                        "FILE_LOCKING"
+                        "FILE_LOCKING",
                     )
+                    break
     
     def _check_encoding_issues(self):
         """Check for encoding-related issues."""
