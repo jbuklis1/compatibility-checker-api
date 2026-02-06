@@ -1,5 +1,5 @@
 """
-C++-specific checks.
+C/C++-specific checks.
 """
 
 from deps import List
@@ -9,15 +9,17 @@ from ..issue import Severity
 
 
 class CppChecker(BaseChecker):
-    """C++-specific cross-platform checks."""
+    """C/C++-specific cross-platform checks (used for both .c/.h and .cpp/.hpp)."""
     
     def _run_checks(self):
-        """Run C++-specific checks."""
+        """Run C/C++-specific checks."""
         self._check_filesystem_usage()
         self._check_windows_types()
     
     def _check_filesystem_usage(self):
-        """Check for filesystem usage."""
+        """Check for C++ filesystem usage (C++ only; C has no std::filesystem)."""
+        if self.language != "cpp":
+            return
         for i, line in enumerate(self.lines, 1):
             if '<filesystem>' in line or 'std::filesystem' in line:
                 self._add_issue(

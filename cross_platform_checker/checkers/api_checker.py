@@ -74,6 +74,11 @@ class APIChecker(BaseChecker):
                 '<sys/socket.h>', '<unistd.h>', '<pthread.h>',
                 '<Cocoa/Cocoa.h>', '<AppKit/AppKit.h>',
             ],
+            'c': [
+                '<windows.h>', '<winsock.h>', '<winsock2.h>',
+                '<sys/socket.h>', '<unistd.h>', '<pthread.h>',
+                '<Cocoa/Cocoa.h>', '<AppKit/AppKit.h>',
+            ],
         }
         
         for i, line in enumerate(self.lines, 1):

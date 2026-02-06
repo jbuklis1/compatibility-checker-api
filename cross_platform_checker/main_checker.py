@@ -31,10 +31,12 @@ class CrossPlatformChecker:
             SystemChecker(),
         ]
         
-        # Language-specific checkers
+        # Language-specific checkers (C and C++ share the same checker)
+        _cpp_checker = CppChecker()
         self.language_checkers = {
             'python': PythonChecker(),
-            'cpp': CppChecker(),
+            'cpp': _cpp_checker,
+            'c': _cpp_checker,
             'javascript': JavaScriptChecker(),
         }
         
