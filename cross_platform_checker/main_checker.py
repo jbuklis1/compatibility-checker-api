@@ -2,9 +2,11 @@
 Main checker class that coordinates all checkers.
 """
 
-from deps import Any, Dict, List, Optional, Path
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from .issue import Issue, Severity
+from .context_pruner import ContextPruner
+from .issue import Candidate, Issue, Severity
 from .utils import detect_language
 from .checkers import (
     PathChecker, APIChecker, FileChecker, EnvChecker,
@@ -59,17 +61,24 @@ class CrossPlatformChecker:
                 "", "", "FILE_IO"
             )]
         
-        # Run all general checkers
+        candidates: List[Candidate] = []
+
+        # Run all general checkers (with candidate collection)
         for checker in self.checkers:
-            issues = checker.check(file_path, lines, self.language)
+            issues = checker.check(file_path, lines, self.language, candidates)
             self.issues.extend(issues)
-        
+
         # Run language-specific checkers
         if self.language in self.language_checkers:
             checker = self.language_checkers[self.language]
-            issues = checker.check(file_path, lines, self.language)
+            issues = checker.check(file_path, lines, self.language, candidates)
             self.issues.extend(issues)
-        
+
+        # Phase 2: prune candidates with wider-scope context
+        if candidates:
+            pruner = ContextPruner(lines, self.language, candidates)
+            self.issues.extend(pruner.prune())
+
         return self.issues
     
     def check_files(self, file_paths: List[Path]) -> Dict[Path, List[Issue]]:
