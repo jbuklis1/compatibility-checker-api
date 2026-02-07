@@ -10,7 +10,7 @@ from .issue import Candidate, Issue, Severity
 from .utils import detect_language
 from .checkers import (
     PathChecker, APIChecker, FileChecker, EnvChecker,
-    SystemChecker, PythonChecker, CppChecker, JavaScriptChecker
+    SystemChecker, PythonChecker, CppChecker, JavaScriptChecker, JavaChecker
 )
 
 
@@ -38,6 +38,7 @@ class CrossPlatformChecker:
             'cpp': _cpp_checker,
             'c': _cpp_checker,
             'javascript': JavaScriptChecker(),
+            'java': JavaChecker(),
         }
         
     def check_file(self, file_path: Path) -> List[Issue]:
@@ -170,6 +171,8 @@ class CrossPlatformChecker:
             imports.extend(self._extract_javascript_imports(lines))
         elif language in ('cpp', 'c'):
             imports.extend(self._extract_cpp_includes(lines))
+        elif language == 'java':
+            imports.extend(self._extract_java_imports(lines))
         
         return imports
     
@@ -245,6 +248,22 @@ class CrossPlatformChecker:
                 imports.append(match.group(1))
         
         return imports
+
+    def _extract_java_imports(self, lines: List[str]) -> List[str]:
+        """Extract Java import statements. Returns type/package names for resolution."""
+        imports: List[str] = []
+        import re
+        
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('//') or stripped.startswith('*') or stripped.startswith('/*'):
+                continue
+            # import pkg.Class; or import pkg.sub.Class;
+            match = re.match(r'^\s*import\s+(?:static\s+)?(\S+?)\s*;', stripped)
+            if match:
+                imports.append(match.group(1))
+        
+        return imports
     
     def _resolve_import(self, imp: str, from_file: Path, file_set: set) -> Optional[Path]:
         """Try to resolve an import to an actual file path."""
@@ -257,7 +276,7 @@ class CrossPlatformChecker:
         if not imp_clean:
             return None
 
-        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '')
+        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '').replace('.java', '')
 
         # Relative import (Python: from .module or from ..module import ...)
         if imp_clean.startswith('.'):
@@ -295,7 +314,7 @@ class CrossPlatformChecker:
                         rel = fp.relative_to(common)
                     except ValueError:
                         continue
-                    stem = str(rel).replace('\\', '/').replace('.py', '').replace('.ts', '').replace('.js', '')
+                    stem = str(rel).replace('\\', '/').replace('.py', '').replace('.ts', '').replace('.js', '').replace('.java', '')
                     if stem.endswith('/__init__'):
                         stem = stem[:-9]
                     module_path = stem.replace('/', '.')
@@ -309,7 +328,7 @@ class CrossPlatformChecker:
 
         # Same directory, with extensions
         if from_file.parent:
-            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c']:
+            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c', '.java']:
                 candidate = (from_file.parent / (imp_base + ext)).resolve()
                 if candidate in file_set:
                     return candidate

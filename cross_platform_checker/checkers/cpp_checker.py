@@ -2,6 +2,7 @@
 C/C++-specific checks.
 """
 
+import re
 from deps import List
 
 from ..checker_base import BaseChecker
@@ -31,14 +32,17 @@ class CppChecker(BaseChecker):
                 )
     
     def _check_windows_types(self):
-        """Check for Windows-specific types."""
+        """Check for Windows-specific types (whole-word match to avoid flagging e.g. ARG_HANDLER)."""
+        word_bound = re.compile(r"\b(DWORD|HANDLE|LPSTR)\b")
         for i, line in enumerate(self.lines, 1):
-            if 'DWORD' in line or 'HANDLE' in line or 'LPSTR' in line:
-                if not self._is_comment(line):
-                    self._add_issue(
-                        Severity.ERROR, i, 0,
-                        "Windows-specific type detected",
-                        line.strip(),
-                        "Use standard C++ types or add platform guards",
-                        "TYPE_DEFINITION"
-                    )
+            if self._is_comment(line):
+                continue
+            for m in word_bound.finditer(line):
+                self._add_issue(
+                    Severity.ERROR, i, m.start(),
+                    "Windows-specific type detected",
+                    line.strip(),
+                    "Use standard C++ types or add platform guards",
+                    "TYPE_DEFINITION",
+                )
+                break

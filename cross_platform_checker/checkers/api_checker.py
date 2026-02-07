@@ -53,6 +53,9 @@ class APIChecker(BaseChecker):
                     for m in re.finditer(pattern, line, re.IGNORECASE):
                         if position_inside_string_literal(line, m.start()):
                             continue
+                        # Python's exec() runs code strings and is cross-platform; only flag Unix-style exec in other languages
+                        if api == 'exec' and self.language == 'python':
+                            continue
                         self._add_issue(
                             Severity.ERROR, i, m.start(),
                             f"Platform-specific API detected: {api} ({platform})",

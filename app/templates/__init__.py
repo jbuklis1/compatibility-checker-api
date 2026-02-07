@@ -134,6 +134,8 @@ def render_review_results(
     # Escape </script> to prevent XSS (JSON already escapes quotes properly)
     results_json = results_json_raw.replace("</script>", "<\\/script>")
     
+    error_count = sum(1 for i in issues if i.severity == "ERROR")
+    warning_count = sum(1 for i in issues if i.severity == "WARNING")
     file_path_escaped = quote(file_path, safe="")
     return render_template(
         "review_results.html",
@@ -141,6 +143,8 @@ def render_review_results(
         file_path_escaped=file_path_escaped,
         error_block=error_block,
         issue_count=len(issues),
+        error_count=error_count,
+        warning_count=warning_count,
         issues_block=issues_block,
         suggestions_block=suggestions_block,
         tests_block=tests_block,
@@ -165,7 +169,10 @@ def render_review_multi_results(
     error_block = f'<div class="form-error">{esc(error)}</div>' if error else ""
     
     total_files = len(files)
-    total_issues = sum(len(f.issues) for f in files)
+    all_issues = [i for f in files for i in f.issues]
+    total_issues = len(all_issues)
+    total_errors = sum(1 for i in all_issues if i.severity == "ERROR")
+    total_warnings = sum(1 for i in all_issues if i.severity == "WARNING")
 
     # Compute display_root for relative paths (used by dependency graph and files block)
     file_paths = [Path(f.file_path).resolve() for f in files]
@@ -293,9 +300,10 @@ def render_review_multi_results(
       <div class="issue-code">Code: {esc(i.code)}</div>
       <div class="issue-fix">Fix: {esc(i.suggestion)}</div>
     </div>"""
+            issue_count = len(issues)
             file_name_html = f'<span class="file-path-folder">{esc(folder_part)}</span><span class="file-path-name">{esc(name_part)}</span> <span class="file-path-lang">({esc(language)})</span>'
             files_block += f"""
-  <details class="file-collapsible">
+  <details class="file-collapsible" data-issue-count="{issue_count}" data-file-path="{esc(file_display)}">
     <summary><span class="file-name">{file_name_html}</span>{summary_counts}</summary>
     <div class="collapsible-content">
       <div class="file-group">
@@ -306,7 +314,7 @@ def render_review_multi_results(
         else:
             file_name_html = f'<span class="file-path-folder">{esc(folder_part)}</span><span class="file-path-name">{esc(name_part)}</span> <span class="file-path-lang">({esc(language)})</span>'
             files_block += f"""
-  <details class="file-collapsible">
+  <details class="file-collapsible" data-issue-count="0" data-file-path="{esc(file_display)}">
     <summary><span class="file-name">{file_name_html}</span><span class="file-counts">No issues found.</span></summary>
     <div class="collapsible-content">
       <div class="file-group">
@@ -321,7 +329,14 @@ def render_review_multi_results(
         files_block = f"""<details class="collapsible-section" open>
   <summary>Standard File Issues</summary>
   <div class="collapsible-content">
+  <div class="file-issues-toolbar">
+    <span class="file-issues-toolbar-label">Sort by:</span>
+    <button type="button" class="sort-file-by-path" aria-pressed="true">Path</button>
+    <button type="button" class="sort-file-by-count" aria-pressed="false">Issue count</button>
+  </div>
+  <div class="file-issues-list" id="file-issues-list">
 {files_block}
+  </div>
   </div>
 </details>"""
 
@@ -341,6 +356,8 @@ def render_review_multi_results(
         error_block=error_block,
         total_files=total_files,
         total_issues=total_issues,
+        total_errors=total_errors,
+        total_warnings=total_warnings,
         cross_file_insights_block=cross_file_insights_block,
         dependency_graph_block=dependency_graph_block,
         ai_fix_suggestions_block=ai_fix_suggestions_block,

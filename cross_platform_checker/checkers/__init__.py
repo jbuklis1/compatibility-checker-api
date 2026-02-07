@@ -10,6 +10,7 @@ from .system_checker import SystemChecker
 from .python_checker import PythonChecker
 from .cpp_checker import CppChecker
 from .javascript_checker import JavaScriptChecker
+from .java_checker import JavaChecker
 
 __all__ = [
     'PathChecker',
@@ -20,4 +21,5 @@ __all__ = [
     'PythonChecker',
     'CppChecker',
     'JavaScriptChecker',
+    'JavaChecker',
 ]

@@ -16,6 +16,10 @@ FILE_PATH_CONTEXT_JAVASCRIPT = (
     "readFile", "writeFile", "existsSync", "path.join", "path.resolve", "path.",
     "fs.readFile", "fs.writeFile", "fs.exists", "fs.stat", "fs.mkdir", "fs.readdir",
 )
+FILE_PATH_CONTEXT_JAVA = (
+    "new File(", "Paths.get(", "Path.of(", "Files.", "FileReader(", "FileWriter(",
+    "FileInputStream(", "FileOutputStream(", "RandomAccessFile(",
+)
 
 # Substrings that indicate the line is likely URL/API or display text, not a file path.
 URL_OR_DISPLAY_INDICATORS = (
@@ -30,6 +34,8 @@ def is_file_path_context(line: str, language: str = "python") -> bool:
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_PYTHON)
     if language == "javascript":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVASCRIPT)
+    if language == "java":
+        return any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVA)
     return False
 
 
@@ -47,6 +53,9 @@ _VAR_PATH_PYTHON = re.compile(
 )
 _VAR_PATH_JAVASCRIPT = re.compile(
     r"(?:readFile|writeFile|existsSync|stat|mkdir|readdir)\s*\(\s*(?![\"'])([a-zA-Z_$][a-zA-Z0-9_.$]*)\s*[,)]"
+)
+_VAR_PATH_JAVA = re.compile(
+    r"(?:new\s+File|Paths\.get|Path\.of|Files\.(?:readAllBytes|write|readAllLines|newBufferedReader|newBufferedWriter|newInputStream|newOutputStream))\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
 )
 
 
@@ -84,6 +93,8 @@ def has_variable_path_argument(line: str, language: str = "python") -> bool:
         return _VAR_PATH_PYTHON.search(line) is not None
     if language == "javascript":
         return _VAR_PATH_JAVASCRIPT.search(line) is not None
+    if language == "java":
+        return _VAR_PATH_JAVA.search(line) is not None
     return False
 
 

@@ -1,7 +1,7 @@
 <h1>Multi-File Analysis Results: {source_path}</h1>
 {error_block}
 
-<p><strong>{total_files}</strong> file(s) analyzed · <strong>{total_issues}</strong> total issue(s) found</p>
+<p><strong>{total_files}</strong> file(s) analyzed · <strong>{total_issues}</strong> total issue(s) found ({total_errors} error(s), {total_warnings} warning(s))</p>
 
 {cross_file_insights_block}
 
@@ -10,6 +10,41 @@
 {ai_fix_suggestions_block}
 
 {files_block}
+
+<script>
+(function() {{
+  var list = document.getElementById('file-issues-list');
+  if (!list) return;
+  var byPath = document.querySelector('.file-issues-toolbar .sort-file-by-path');
+  var byCount = document.querySelector('.file-issues-toolbar .sort-file-by-count');
+  if (!byPath || !byCount) return;
+
+  function sortByPath() {{
+    var items = [].slice.call(list.querySelectorAll('.file-collapsible'));
+    items.sort(function(a, b) {{
+      return (a.getAttribute('data-file-path') || '').localeCompare(b.getAttribute('data-file-path') || '');
+    }});
+    items.forEach(function(el) {{ list.appendChild(el); }});
+    byPath.setAttribute('aria-pressed', 'true');
+    byCount.setAttribute('aria-pressed', 'false');
+  }}
+
+  function sortByCount() {{
+    var items = [].slice.call(list.querySelectorAll('.file-collapsible'));
+    items.sort(function(a, b) {{
+      var na = parseInt(a.getAttribute('data-issue-count') || '0', 10);
+      var nb = parseInt(b.getAttribute('data-issue-count') || '0', 10);
+      return nb - na;
+    }});
+    items.forEach(function(el) {{ list.appendChild(el); }});
+    byPath.setAttribute('aria-pressed', 'false');
+    byCount.setAttribute('aria-pressed', 'true');
+  }}
+
+  byPath.addEventListener('click', sortByPath);
+  byCount.addEventListener('click', sortByCount);
+}})();
+</script>
 
 <div class="download-section">
   <a href="{download_url}" class="download-button">⬇ Download Multi-File Report</a>
