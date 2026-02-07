@@ -82,6 +82,8 @@ class APIChecker(BaseChecker):
                 '<sys/socket.h>', '<unistd.h>', '<pthread.h>',
                 '<Cocoa/Cocoa.h>', '<AppKit/AppKit.h>',
             ],
+            'rust': [],  # handled by pattern-based check below
+            'csharp': [],  # handled by pattern-based check below
         }
         
         for i, line in enumerate(self.lines, 1):
@@ -99,6 +101,86 @@ class APIChecker(BaseChecker):
                         "LIBRARY_IMPORT",
                     )
                     break
+            # C/C++: pattern-based includes for OS and display-server (Linux, Wayland, X11)
+            if self.language in ('c', 'cpp'):
+                m = re.search(r'#include\s*<([^>]+)>', line)
+                if m and not position_inside_string_literal(line, m.start()):
+                    header = m.group(1).strip()
+                    if header.startswith('linux/'):
+                        self._add_issue(
+                            Severity.WARNING, i, m.start(),
+                            "Linux kernel / OS-specific include",
+                            line.strip(),
+                            "Add platform guards or use portable abstractions for cross-OS compatibility",
+                            "LIBRARY_IMPORT",
+                        )
+                    elif header.startswith('wayland-') or header.startswith('wayland/'):
+                        self._add_issue(
+                            Severity.WARNING, i, m.start(),
+                            "Wayland-specific include; not available on X11-only or other display servers",
+                            line.strip(),
+                            "Use conditional compilation or abstraction for X11/Wayland portability",
+                            "LIBRARY_IMPORT",
+                        )
+                    elif header.startswith('X11/'):
+                        self._add_issue(
+                            Severity.WARNING, i, m.start(),
+                            "X11-specific include; not available on Wayland-only systems",
+                            line.strip(),
+                            "Consider X11/Wayland portability or abstraction layer",
+                            "LIBRARY_IMPORT",
+                        )
+                    elif header.startswith('xcb/'):
+                        self._add_issue(
+                            Severity.WARNING, i, m.start(),
+                            "X11 XCB include; not available on Wayland-only systems",
+                            line.strip(),
+                            "Consider X11/Wayland portability or abstraction layer",
+                            "LIBRARY_IMPORT",
+                        )
+            # Rust: OS-associated crates (use ...:: or extern crate ...)
+            if self.language == 'rust':
+                use_match = re.search(r'\buse\s+([a-zA-Z0-9_]+)(?:::|;)', line)
+                if use_match and not position_inside_string_literal(line, use_match.start()):
+                    crate = use_match.group(1)
+                    if crate in ('winapi', 'windows_sys', 'libc', 'nix') or crate.startswith('linux_'):
+                        self._add_issue(
+                            Severity.WARNING, i, use_match.start(),
+                            f"OS-associated crate: {crate}",
+                            line.strip(),
+                            "Add cfg(target_os) guards or document target platforms for cross-platform compatibility",
+                            "LIBRARY_IMPORT",
+                        )
+                extern_match = re.search(r'\bextern\s+crate\s+([a-zA-Z0-9_]+)\s*;', line)
+                if extern_match and not position_inside_string_literal(line, extern_match.start()):
+                    crate = extern_match.group(1)
+                    if crate in ('winapi', 'libc', 'nix') or crate.startswith('linux_'):
+                        self._add_issue(
+                            Severity.WARNING, i, extern_match.start(),
+                            f"OS-associated crate: {crate}",
+                            line.strip(),
+                            "Add cfg(target_os) guards or document target platforms for cross-platform compatibility",
+                            "LIBRARY_IMPORT",
+                        )
+            # C#: platform-specific namespaces and DllImport
+            if self.language == 'csharp':
+                for pattern, msg in (
+                    (r'\busing\s+Microsoft\.Win32\s*;', "Windows-specific namespace: Microsoft.Win32"),
+                    (r'\busing\s+Mono\.Unix\s*;', "Mono/Unix-specific namespace"),
+                    (r'\busing\s+Mono\.Posix\s*;', "Mono/Unix-specific namespace"),
+                    (r'DllImport\s*\(\s*["\'][^"\']*kernel32', "Windows-specific DllImport (kernel32)"),
+                    (r'DllImport\s*\(\s*["\'][^"\']*ntdll', "Windows-specific DllImport (ntdll)"),
+                ):
+                    m = re.search(pattern, line)
+                    if m and not position_inside_string_literal(line, m.start()):
+                        self._add_issue(
+                            Severity.WARNING, i, m.start(),
+                            msg,
+                            line.strip(),
+                            "Use cross-platform APIs or RuntimeInformation.IsOSPlatform guards",
+                            "LIBRARY_IMPORT",
+                        )
+                        break
     
     def _check_threading_apis(self):
         """Check for threading API issues."""

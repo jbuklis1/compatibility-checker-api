@@ -10,7 +10,8 @@ from .issue import Candidate, Issue, Severity
 from .utils import detect_language
 from .checkers import (
     PathChecker, APIChecker, FileChecker, EnvChecker,
-    SystemChecker, PythonChecker, CppChecker, JavaScriptChecker, JavaChecker
+    SystemChecker, PythonChecker, CppChecker, JavaScriptChecker, JavaChecker,
+    RustChecker, CSharpChecker,
 )
 
 
@@ -31,14 +32,18 @@ class CrossPlatformChecker:
             SystemChecker(),
         ]
         
-        # Language-specific checkers (C and C++ share the same checker)
+        # Language-specific checkers (C and C++ share the same checker; JS and TS share the same checker)
         _cpp_checker = CppChecker()
+        _js_checker = JavaScriptChecker()
         self.language_checkers = {
             'python': PythonChecker(),
             'cpp': _cpp_checker,
             'c': _cpp_checker,
-            'javascript': JavaScriptChecker(),
+            'javascript': _js_checker,
+            'typescript': _js_checker,
             'java': JavaChecker(),
+            'rust': RustChecker(),
+            'csharp': CSharpChecker(),
         }
         
     def check_file(self, file_path: Path) -> List[Issue]:
@@ -173,6 +178,10 @@ class CrossPlatformChecker:
             imports.extend(self._extract_cpp_includes(lines))
         elif language == 'java':
             imports.extend(self._extract_java_imports(lines))
+        elif language == 'rust':
+            imports.extend(self._extract_rust_imports(lines))
+        elif language == 'csharp':
+            imports.extend(self._extract_csharp_imports(lines))
         
         return imports
     
@@ -265,6 +274,39 @@ class CrossPlatformChecker:
         
         return imports
     
+    def _extract_rust_imports(self, lines: List[str]) -> List[str]:
+        """Extract Rust use and mod statements. Returns crate/module names for dependency graph."""
+        imports: List[str] = []
+        import re
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+                continue
+            # use crate::path::Item; or use external_crate::path;
+            match = re.match(r'^\s*use\s+([a-zA-Z0-9_][a-zA-Z0-9_:]*)\s*;', stripped)
+            if match:
+                imports.append(match.group(1).split('::')[0])
+                continue
+            # mod name;
+            match = re.match(r'^\s*mod\s+([a-zA-Z0-9_]+)\s*;', stripped)
+            if match:
+                imports.append(match.group(1))
+        return imports
+    
+    def _extract_csharp_imports(self, lines: List[str]) -> List[str]:
+        """Extract C# using statements. Returns namespace names."""
+        imports: List[str] = []
+        import re
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+                continue
+            # using Namespace; or using Alias = Namespace;
+            match = re.match(r'^\s*using\s+(?:[A-Za-z0-9_.]+\s*=\s*)?([A-Za-z0-9_.]+)\s*;', stripped)
+            if match:
+                imports.append(match.group(1))
+        return imports
+    
     def _resolve_import(self, imp: str, from_file: Path, file_set: set) -> Optional[Path]:
         """Try to resolve an import to an actual file path."""
         import os
@@ -276,7 +318,7 @@ class CrossPlatformChecker:
         if not imp_clean:
             return None
 
-        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '').replace('.java', '')
+        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '').replace('.java', '').replace('.rs', '').replace('.cs', '')
 
         # Relative import (Python: from .module or from ..module import ...)
         if imp_clean.startswith('.'):
@@ -328,7 +370,7 @@ class CrossPlatformChecker:
 
         # Same directory, with extensions
         if from_file.parent:
-            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c', '.java']:
+            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c', '.java', '.rs', '.cs']:
                 candidate = (from_file.parent / (imp_base + ext)).resolve()
                 if candidate in file_set:
                     return candidate

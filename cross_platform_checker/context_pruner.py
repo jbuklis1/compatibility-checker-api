@@ -6,7 +6,13 @@ import re
 from typing import Dict, List, Set, Tuple
 
 from .issue import Candidate, Issue, Severity
-from .utils import FILE_PATH_CONTEXT_PYTHON, is_comment, looks_like_file_path
+from .utils import (
+    FILE_PATH_CONTEXT_CSHARP,
+    FILE_PATH_CONTEXT_PYTHON,
+    FILE_PATH_CONTEXT_RUST,
+    is_comment,
+    looks_like_file_path,
+)
 
 # Env API indicators (string/variable used as env var name or value).
 ENV_API_INDICATORS = (
@@ -17,6 +23,11 @@ ENV_API_INDICATORS = (
     "subprocess.",
     "environ[",
     "environ.get(",
+    "std::env::",
+    "env!",
+    "option_env!",
+    "Environment.GetEnvironmentVariable",
+    "Environment.GetFolderPath",
 )
 # Display-only: not relevant for path/env issues.
 DISPLAY_INDICATORS = ("print(", "log(", "logger.", "message", "display", "repr(")
@@ -73,10 +84,14 @@ def _build_usage_map_python(lines: List[str]) -> Dict[str, List[str]]:
     return result
 
 
-def _line_usage_types(line: str) -> Set[str]:
+def _line_usage_types(line: str, language: str = "python") -> Set[str]:
     """Classify line as containing file_io, env_api, and/or display usage."""
     types: Set[str] = set()
-    if any(ctx in line for ctx in FILE_PATH_CONTEXT_PYTHON):
+    if language == "python" and any(ctx in line for ctx in FILE_PATH_CONTEXT_PYTHON):
+        types.add("file_io")
+    elif language == "rust" and any(ctx in line for ctx in FILE_PATH_CONTEXT_RUST):
+        types.add("file_io")
+    elif language == "csharp" and any(ctx in line for ctx in FILE_PATH_CONTEXT_CSHARP):
         types.add("file_io")
     if any(ind in line for ind in ENV_API_INDICATORS):
         types.add("env_api")
@@ -85,9 +100,9 @@ def _line_usage_types(line: str) -> Set[str]:
     return types
 
 
-def _build_line_usage(lines: List[str]) -> Dict[int, Set[str]]:
+def _build_line_usage(lines: List[str], language: str = "python") -> Dict[int, Set[str]]:
     """Build line_number -> set of usage types for string-in-line candidates."""
-    return {i: _line_usage_types(line) for i, line in enumerate(lines, 1)}
+    return {i: _line_usage_types(line, language) for i, line in enumerate(lines, 1)}
 
 
 class ContextPruner:
@@ -105,7 +120,7 @@ class ContextPruner:
         if self.language == "python":
             self._assignment_map = _build_assignment_map_python(self.lines)
             self._usage_map = _build_usage_map_python(self.lines)
-        self._line_usage = _build_line_usage(self.lines)
+        self._line_usage = _build_line_usage(self.lines, self.language)
 
     def _should_promote_variable_path(self, context_data: dict) -> bool:
         """Promote if variable is used in file I/O; drop if only in display or not path-related."""
@@ -132,6 +147,10 @@ class ContextPruner:
             return False
         line = self.lines[line_num - 1]
         if any(ctx in line for ctx in FILE_PATH_CONTEXT_PYTHON):
+            return True
+        if self.language == "rust" and any(ctx in line for ctx in FILE_PATH_CONTEXT_RUST):
+            return True
+        if self.language == "csharp" and any(ctx in line for ctx in FILE_PATH_CONTEXT_CSHARP):
             return True
         for var_name, usages in self._usage_map.items():
             if "file_io" in usages and var_name in line:

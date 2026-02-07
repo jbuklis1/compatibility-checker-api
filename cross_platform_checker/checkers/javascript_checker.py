@@ -25,11 +25,11 @@ class JavaScriptChecker(BaseChecker):
     def _check_variable_path_usage(self):
         """Warn when a variable is used as file path (may be set in another file)."""
         for i, line in enumerate(self.lines, 1):
-            if not is_file_path_context(line, "javascript"):
+            if not is_file_path_context(line, self.language):
                 continue
             if is_likely_url_or_display(line):
                 continue
-            if not has_variable_path_argument(line, "javascript"):
+            if not has_variable_path_argument(line, self.language):
                 continue
             self._add_issue(
                 Severity.WARNING, i, 0,
@@ -46,7 +46,7 @@ class JavaScriptChecker(BaseChecker):
             match = drive_pattern.search(line)
             if not match:
                 continue
-            if not is_file_path_context(line, "javascript"):
+            if not is_file_path_context(line, self.language):
                 continue
             if is_likely_url_or_display(line, match.group(0)):
                 continue

@@ -20,6 +20,16 @@ FILE_PATH_CONTEXT_JAVA = (
     "new File(", "Paths.get(", "Path.of(", "Files.", "FileReader(", "FileWriter(",
     "FileInputStream(", "FileOutputStream(", "RandomAccessFile(",
 )
+FILE_PATH_CONTEXT_RUST = (
+    "std::fs::", "Path::", "PathBuf::", "File::open", "OpenOptions", "read_dir",
+    "create_dir", "metadata", "canonicalize", "read_to_string", "write", "copy",
+    "remove_file", "remove_dir", "symlink", "std::path::",
+)
+FILE_PATH_CONTEXT_CSHARP = (
+    "Path.Combine", "File.", "Directory.", "FileInfo", "DirectoryInfo", "FileStream",
+    "File.Read", "File.Write", "Directory.GetFiles", "Directory.GetDirectories",
+    "Path.GetFullPath", "Environment.GetFolderPath",
+)
 
 # Substrings that indicate the line is likely URL/API or display text, not a file path.
 URL_OR_DISPLAY_INDICATORS = (
@@ -32,10 +42,14 @@ def is_file_path_context(line: str, language: str = "python") -> bool:
     """True if the line contains file I/O or path API indicators for the given language."""
     if language == "python":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_PYTHON)
-    if language == "javascript":
+    if language == "javascript" or language == "typescript":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVASCRIPT)
     if language == "java":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVA)
+    if language == "rust":
+        return any(ctx in line for ctx in FILE_PATH_CONTEXT_RUST)
+    if language == "csharp":
+        return any(ctx in line for ctx in FILE_PATH_CONTEXT_CSHARP)
     return False
 
 
@@ -57,7 +71,15 @@ _VAR_PATH_JAVASCRIPT = re.compile(
 _VAR_PATH_JAVA = re.compile(
     r"(?:new\s+File|Paths\.get|Path\.of|Files\.(?:readAllBytes|write|readAllLines|newBufferedReader|newBufferedWriter|newInputStream|newOutputStream))\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
 )
-
+_VAR_PATH_RUST = re.compile(
+    r"(?:File::open|Path::new|PathBuf::from|read_to_string|read_dir|create_dir|metadata|canonicalize|std::fs::(?:read_dir|read_to_string|read|write|create_dir|metadata|canonicalize))\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
+)
+_VAR_PATH_CSHARP = re.compile(
+    r"(?:File\.(?:ReadAllText|ReadAllBytes|WriteAllText|Exists|Open|Create)|Directory\.(?:Exists|GetFiles|GetDirectories|CreateDirectory)|Path\.Combine)\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
+)
+_VAR_PATH_CSHARP_NEW = re.compile(
+    r"new\s+(?:FileInfo|DirectoryInfo)\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
+)
 
 # MIME type pattern: "type/subtype" - not file paths.
 _MIME_TYPE_PATTERN = re.compile(
@@ -91,10 +113,14 @@ def has_variable_path_argument(line: str, language: str = "python") -> bool:
     """True if the line contains a file I/O call whose path argument looks like a variable."""
     if language == "python":
         return _VAR_PATH_PYTHON.search(line) is not None
-    if language == "javascript":
+    if language == "javascript" or language == "typescript":
         return _VAR_PATH_JAVASCRIPT.search(line) is not None
     if language == "java":
         return _VAR_PATH_JAVA.search(line) is not None
+    if language == "rust":
+        return _VAR_PATH_RUST.search(line) is not None
+    if language == "csharp":
+        return _VAR_PATH_CSHARP.search(line) is not None or _VAR_PATH_CSHARP_NEW.search(line) is not None
     return False
 
 
@@ -115,6 +141,7 @@ def detect_language(file_path: Path) -> str:
         '.java': 'java',
         '.go': 'go',
         '.rs': 'rust',
+        '.cs': 'csharp',
     }
     return lang_map.get(ext, 'unknown')
 
