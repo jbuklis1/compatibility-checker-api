@@ -53,8 +53,8 @@ CACHE_TTL = 300.0  # 5 minutes
 
 @router.get("/review", response_class=HTMLResponse)
 def review_get() -> str:
-    """Form: enter file path for analysis."""
-    return render_review_form()
+    """Redirect to homepage with review tab open."""
+    return RedirectResponse(url="/#review", status_code=302)
 
 
 def _analyze_file(file_path: str, use_cache: bool = True):
@@ -171,11 +171,11 @@ def _handle_multi_file_analysis_html(source_path: str, source_type: str) -> str:
 
 
 @router.get("/review/download")
-def review_download(file_path: str = Query(...)) -> Response:
-    """Download analysis results as a text file. Uses cached results if available."""
+def review_download(file_path: Optional[str] = Query(None)) -> Response:
+    """Download analysis results as a text file. Uses cached results if available. Redirects to / when file_path is missing."""
+    if not file_path or not file_path.strip():
+        return RedirectResponse(url="/", status_code=302)
     file_path = file_path.strip()
-    if not file_path:
-        raise HTTPException(400, "file_path query parameter is required")
     try:
         # Use cache to avoid re-running AI calls
         issues, code, lang, ai_suggestions, generated_tests = _analyze_file(file_path, use_cache=True)
@@ -190,6 +190,12 @@ def review_download(file_path: str = Query(...)) -> Response:
         raise
     except Exception as e:
         raise HTTPException(500, f"Error generating report: {str(e)}")
+
+
+@router.get("/review/multi")
+def review_multi_get():
+    """Redirect GET /review/multi to homepage with review tab open."""
+    return RedirectResponse(url="/#review", status_code=302)
 
 
 @router.post("/review/multi", response_model=MultiFileAnalyzeResponse)
@@ -412,12 +418,14 @@ def review_results_post(
 @router.get("/review/multi/download")
 def review_multi_download(
     source_path: Optional[str] = Query(None),
-    source_type: str = Query(...),
+    source_type: Optional[str] = Query(None),
     report_id: Optional[str] = Query(None),
 ) -> Response:
-    """Download multi-file analysis results as a text file. For uploads use report_id; for path-based use source_path."""
+    """Download multi-file analysis results as a text file. For uploads use report_id; for path-based use source_path. Redirects to /#review when opened without params."""
     from ..schemas import FileIssues
 
+    if not source_type or not source_type.strip():
+        return RedirectResponse(url="/#review", status_code=302)
     source_type = source_type.strip()
 
     # Upload flow: serve from cache by report_id (no filesystem path)

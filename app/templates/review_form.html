@@ -4,7 +4,7 @@
 <div id="client-error" class="form-error" style="display:none;" role="alert"></div>
 
 <div id="review-form-container">
-  <form method="post" action="/review/results" enctype="multipart/form-data" id="review-form">
+  <form method="post" action="/review/results" enctype="multipart/form-data" id="review-form" class="review-form">
     <input type="hidden" name="mode" id="form-mode" value="ai">
     <div class="upload-choices">
       <div>
@@ -16,7 +16,7 @@
         <input type="file" id="source-folder" name="files" multiple webkitdirectory>
       </div>
     </div>
-    <div>
+    <div class="selection-summary-wrap">
       <small id="selection-summary">No selection yet.</small>
     </div>
     <div class="submit-buttons">
@@ -210,5 +210,3 @@
   }});
 }})();
 </script>
-
-<p style="margin-top: 2rem;"><a href="/">Home</a> · <a href="/docs">Swagger UI</a> · <a href="/redoc">ReDoc</a> · <a href="/health">Health</a></p>

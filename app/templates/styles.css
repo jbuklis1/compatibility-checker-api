@@ -61,6 +61,27 @@ input[type="text"] {
   margin-left: 0.75rem;
 }
 
+/* Review form: stack upload options then Analyze buttons below */
+#review-form-container form.review-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+#review-form-container .selection-summary-wrap {
+  margin-top: 0.25rem;
+}
+
+#review-form-container .submit-buttons {
+  margin-top: 0.5rem;
+}
+
+#review-form-container .submit-buttons button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 button {
   padding: 0.5rem 1rem;
   font-size: 0.9375rem;
@@ -377,4 +398,31 @@ pre {
 .file-group .issue {
   margin-left: 1rem;
   margin-top: 0.75rem;
+}
+
+/* Homepage review tab */
+.review-trigger {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background: #2563eb;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+.review-trigger:hover {
+  background: #1d4ed8;
+}
+
+.review-tab-panel {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.review-tab-banner {
+  margin-bottom: 1rem;
 }

@@ -1,9 +1,36 @@
 <h1>AI-Powered Cross-Platform Compatibility Checker API</h1>
-<p>Endpoints:</p>
-<ul>
-  <li><a href="/review">/review</a> — Upload files or folders for analysis</li>
-  <li><a href="/docs">/docs</a> — Swagger UI</li>
-  <li><a href="/redoc">/redoc</a> — ReDoc</li>
-  <li><a href="/health">/health</a> — Liveness</li>
-</ul>
-<p class="meta">Use <a href="/review">/review</a> to upload files or folders for analysis. See <a href="/docs">/docs</a> for API details.</p>
+<p>Check code for cross-platform compatibility issues. Upload files or a folder to run rule-based checks and optional AI fix suggestions.</p>
+
+<p>
+  <button type="button" id="review-btn" class="review-trigger">Review</button>
+</p>
+
+<section id="review-tab" class="review-tab-panel" {review_tab_attr} aria-labelledby="review-btn">
+  <div class="review-tab-banner">{ai_status_banner}</div>
+  <div class="review-tab-content">
+{review_form_content}
+  </div>
+</section>
+
+<script>
+(function() {{
+  const reviewBtn = document.getElementById('review-btn');
+  const reviewTab = document.getElementById('review-tab');
+  if (!reviewBtn || !reviewTab) return;
+
+  function openReviewTab() {{
+    reviewTab.removeAttribute('hidden');
+    window.location.hash = 'review';
+  }}
+
+  reviewBtn.addEventListener('click', openReviewTab);
+
+  if (window.location.hash === '#review' || (new URLSearchParams(window.location.search)).get('tab') === 'review') {{
+    openReviewTab();
+  }}
+}})();
+</script>
+
+<footer class="page-footer" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ccc;">
+  <a href="/docs" class="link">Swagger UI</a> · <a href="/redoc" class="link">ReDoc</a>
+</footer>

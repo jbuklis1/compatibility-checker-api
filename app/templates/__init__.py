@@ -41,7 +41,12 @@ def load_css() -> str:
     return load_template("styles.css")
 
 
-def render_template(template_name: str, **kwargs) -> str:
+def render_ai_status_banner() -> str:
+    """Generate AI status banner HTML (for embedding in review tab)."""
+    return _render_ai_status_banner()
+
+
+def render_template(template_name: str, omit_global_ai_banner: bool = False, **kwargs) -> str:
     """Render a template with the given variables."""
     template = load_template(template_name)
     css = load_css()
@@ -49,9 +54,32 @@ def render_template(template_name: str, **kwargs) -> str:
     content = template.format(**kwargs)
     # Use string replacement for base template to avoid CSS brace conflicts
     title_val = kwargs.get("title", "Compatibility Checker")
-    ai_banner = _render_ai_status_banner()
+    ai_banner = "" if omit_global_ai_banner else _render_ai_status_banner()
     result = base.replace("{title}", title_val).replace("{css}", css).replace("{ai_status_banner}", ai_banner).replace("{content}", content)
     return result
+
+
+def render_review_form_fragment(error: Optional[str] = None, value: str = "") -> str:
+    """Return only the review form content (no base layout), for embedding in the homepage tab."""
+    error_block = f'<div class="form-error">{html.escape(error)}</div>' if error else ""
+    value_attr = f' value="{html.escape(value)}"' if value else ""
+    template = load_template("review_form.html")
+    return template.format(error_block=error_block, value_attr=value_attr)
+
+
+def render_homepage(review_tab_open: bool = False, form_error: Optional[str] = None) -> str:
+    """Render the merged homepage with optional review tab open and form error message."""
+    review_form_content = render_review_form_fragment(error=form_error)
+    ai_status_banner = _render_ai_status_banner()
+    review_tab_attr = "" if review_tab_open else "hidden"
+    return render_template(
+        "root.html",
+        omit_global_ai_banner=True,
+        title="Cross-Platform Compatibility Checker API",
+        ai_status_banner=ai_status_banner,
+        review_form_content=review_form_content,
+        review_tab_attr=review_tab_attr,
+    )
 
 
 def render_review_form(error: Optional[str] = None, value: str = "") -> str:

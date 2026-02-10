@@ -44,7 +44,7 @@ FastAPI + Uvicorn API that runs rule-based cross-platform checks, plus Together.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/health` | Liveness check |
-| GET | `/review` | Upload form for file/folder analysis (with AI or rules-only) |
+| GET | `/` | Homepage with Review tab for file/folder analysis |
+| GET | `/review` | Redirects to `/#review` (opens Review tab on homepage) |
 
 OpenAPI docs: `http://localhost:8000/docs`.
