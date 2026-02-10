@@ -136,6 +136,7 @@ def render_review_results(
     
     error_count = sum(1 for i in issues if i.severity == "ERROR")
     warning_count = sum(1 for i in issues if i.severity == "WARNING")
+    info_count = sum(1 for i in issues if i.severity == "INFO")
     file_path_escaped = quote(file_path, safe="")
     return render_template(
         "review_results.html",
@@ -145,6 +146,7 @@ def render_review_results(
         issue_count=len(issues),
         error_count=error_count,
         warning_count=warning_count,
+        info_count=info_count,
         issues_block=issues_block,
         suggestions_block=suggestions_block,
         tests_block=tests_block,
@@ -173,6 +175,7 @@ def render_review_multi_results(
     total_issues = len(all_issues)
     total_errors = sum(1 for i in all_issues if i.severity == "ERROR")
     total_warnings = sum(1 for i in all_issues if i.severity == "WARNING")
+    total_info = sum(1 for i in all_issues if i.severity == "INFO")
 
     # Compute display_root for relative paths (used by dependency graph and files block)
     file_paths = [Path(f.file_path).resolve() for f in files]
@@ -281,6 +284,7 @@ def render_review_multi_results(
         language = file_issues.language or "unknown"
         error_count = sum(1 for i in issues if i.severity == "ERROR")
         warning_count = sum(1 for i in issues if i.severity == "WARNING")
+        info_count = sum(1 for i in issues if i.severity == "INFO")
         
         if issues:
             counts_parts = []
@@ -288,6 +292,8 @@ def render_review_multi_results(
                 counts_parts.append(f"{error_count} error(s)")
             if warning_count:
                 counts_parts.append(f"{warning_count} warning(s)")
+            if info_count:
+                counts_parts.append(f"{info_count} info")
             counts_text = ", ".join(counts_parts) if counts_parts else f"{len(issues)} issue(s)"
             summary_counts = f'<span class="file-counts">{counts_text}</span>'
             issues_html = ""
@@ -358,6 +364,7 @@ def render_review_multi_results(
         total_issues=total_issues,
         total_errors=total_errors,
         total_warnings=total_warnings,
+        total_info=total_info,
         cross_file_insights_block=cross_file_insights_block,
         dependency_graph_block=dependency_graph_block,
         ai_fix_suggestions_block=ai_fix_suggestions_block,
