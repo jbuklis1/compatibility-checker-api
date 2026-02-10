@@ -1,6 +1,7 @@
 <h1>Review files for cross-platform compatibility</h1>
 <p>Select one or more files, a zip archive, or a folder. The app will automatically detect what you selected and run the appropriate analysis.</p>
 {error_block}
+<div id="client-error" class="form-error" style="display:none;" role="alert"></div>
 
 <div id="review-form-container">
   <form method="post" action="/review/results" enctype="multipart/form-data" id="review-form">
@@ -36,6 +37,38 @@
   const summary = document.getElementById('selection-summary');
   const button = document.getElementById('analyze-btn');
   const rulesButton = document.getElementById('analyze-rules-btn');
+  const clientError = document.getElementById('client-error');
+  const MAX_FILES = 1000;
+
+  // Mirror file_extractor.py SOURCE_EXTENSIONS and EXCLUDE_DIRS
+  const SOURCE_EXTENSIONS = new Set([
+    '.py', '.js', '.ts', '.jsx', '.tsx',
+    '.cpp', '.cxx', '.cc', '.c', '.h', '.hpp',
+    '.java', '.go', '.rs', '.rb', '.php',
+    '.swift', '.kt', '.scala', '.clj'
+  ]);
+  const EXCLUDE_DIRS = [
+    '.git', '.svn', '.hg', '__pycache__', 'node_modules',
+    '.venv', 'venv', 'env', '.env', 'dist', 'build',
+    '.pytest_cache', '.mypy_cache', '.tox', '.idea', '.vscode'
+  ];
+
+  function getCurrentFiles() {{
+    if (inputFiles.files && inputFiles.files.length > 0) return inputFiles.files;
+    if (inputFolder.files && inputFolder.files.length > 0) return inputFolder.files;
+    return null;
+  }}
+
+  function isReviewable(file) {{
+    const name = file.name || '';
+    const ext = name.indexOf('.') >= 0 ? '.' + name.split('.').pop().toLowerCase() : '';
+    if (!SOURCE_EXTENSIONS.has(ext)) return false;
+    const path = (file.webkitRelativePath || file.name || '').replace(/\\\\/g, '/');
+    for (let i = 0; i < EXCLUDE_DIRS.length; i++) {{
+      if (path.indexOf(EXCLUDE_DIRS[i] + '/') >= 0 || path.indexOf('/' + EXCLUDE_DIRS[i] + '/') >= 0) return false;
+    }}
+    return true;
+  }}
 
   function classify(files) {{
     if (!files || files.length === 0) {{
@@ -56,19 +89,30 @@
   }}
 
   function updateSummary(files) {{
-    const info = classify(files);
-    if (info.type === 'none') {{
+    clientError.style.display = 'none';
+    clientError.textContent = '';
+    if (!files || files.length === 0) {{
       summary.textContent = 'No file selected.';
       button.disabled = true;
       rulesButton.disabled = true;
       return;
     }}
-    let label;
-    if (info.type === 'single') label = 'Single file';
-    else if (info.type === 'archive') label = 'Zip archive';
-    else if (info.type === 'folder') label = 'Folder / tree selection';
-    else label = 'Multiple files';
-    summary.textContent = label + ' selected (' + info.count + ' item(s)). Examples: ' + info.names.join(', ');
+    const info = classify(files);
+    let msg;
+    if (info.type === 'single' || info.type === 'archive') {{
+      const label = info.type === 'single' ? 'Single file' : 'Zip archive';
+      msg = label + ' selected (' + info.count + ' item(s)). Examples: ' + info.names.join(', ');
+    }} else if (info.type === 'folder' || info.type === 'multiple') {{
+      const reviewable = Array.from(files).filter(isReviewable);
+      const capped = reviewable.length > MAX_FILES ? MAX_FILES : reviewable.length;
+      const excluded = files.length - reviewable.length;
+      msg = (info.type === 'folder' ? 'Folder' : 'Multiple') + ': ' + capped + ' reviewable file(s)' + (excluded > 0 ? ' (' + excluded + ' excluded)' : '');
+      if (reviewable.length > MAX_FILES) msg += '. Showing first ' + MAX_FILES;
+      if (info.names.length) msg += '. Examples: ' + info.names.slice(0, 5).join(', ');
+    }} else {{
+      msg = info.count + ' item(s)' + (info.names.length ? '. Examples: ' + info.names.join(', ') : '');
+    }}
+    summary.textContent = msg;
     button.disabled = false;
     rulesButton.disabled = false;
   }}
@@ -97,11 +141,72 @@
   const modeInput = document.getElementById('form-mode');
   button.addEventListener('click', function() {{ modeInput.value = 'ai'; }});
   rulesButton.addEventListener('click', function() {{ modeInput.value = 'rules'; }});
-  form.addEventListener('submit', function() {{
+
+  form.addEventListener('submit', async function(e) {{
+    e.preventDefault();
+    const files = getCurrentFiles();
+    if (!files || files.length === 0) {{
+      clientError.textContent = 'Please select at least one file to upload.';
+      clientError.style.display = 'block';
+      return;
+    }}
+    clientError.style.display = 'none';
+    clientError.textContent = '';
+
+    const info = classify(files);
+    let filesToSend = [];
+    if (info.type === 'archive' && info.count === 1) {{
+      filesToSend = [files[0]];
+    }} else {{
+      const reviewable = Array.from(files).filter(isReviewable);
+      if (reviewable.length === 0) {{
+        clientError.textContent = 'No reviewable files in selection.';
+        clientError.style.display = 'block';
+        return;
+      }}
+      filesToSend = reviewable.slice(0, MAX_FILES);
+    }}
+
+    const formData = new FormData();
+    formData.append('mode', modeInput.value);
+    for (let i = 0; i < filesToSend.length; i++) {{
+      formData.append('files', filesToSend[i]);
+    }}
+
     formContainer.hidden = true;
     progressEl.hidden = false;
     button.disabled = true;
     rulesButton.disabled = true;
+
+    try {{
+      const response = await fetch(form.action, {{ method: 'POST', body: formData }});
+      const text = await response.text();
+      if (response.ok) {{
+        document.open();
+        document.write(text);
+        document.close();
+        return;
+      }}
+      if (text.indexOf('Review files for cross-platform compatibility') >= 0 || text.indexOf('review-form') >= 0) {{
+        document.open();
+        document.write(text);
+        document.close();
+        return;
+      }}
+      clientError.textContent = 'Too many files. Maximum number of files is 1000.';
+      clientError.style.display = 'block';
+      formContainer.hidden = false;
+      progressEl.hidden = true;
+      button.disabled = false;
+      rulesButton.disabled = false;
+    }} catch (err) {{
+      clientError.textContent = 'Error submitting: ' + (err.message || String(err));
+      clientError.style.display = 'block';
+      formContainer.hidden = false;
+      progressEl.hidden = true;
+      button.disabled = false;
+      rulesButton.disabled = false;
+    }}
   }});
 }})();
 </script>

@@ -1,13 +1,16 @@
 """FastAPI app: main entry point."""
 
 from .config import ensure_checker_import_path
-from deps import CORSMiddleware, FastAPI
+from deps import CORSMiddleware, FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.requests import Request
 from .routes import (
     health_router,
     review_router,
     root_router,
 )
 from .startup import validate_config
+from .templates import render_review_form
 
 ensure_checker_import_path()
 
@@ -29,6 +32,19 @@ app.add_middleware(
 app.include_router(root_router)
 app.include_router(health_router)
 app.include_router(review_router)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Return review form with error message for 'Too many files' 400 on POST /review/results."""
+    if (
+        request.method == "POST"
+        and request.url.path.rstrip("/") == "/review/results"
+        and "Too many files" in str(exc.detail)
+    ):
+        html = render_review_form(error="Too many files. Maximum number of files is 1000.")
+        return HTMLResponse(html)
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 @app.on_event("startup")
