@@ -18,6 +18,7 @@ _LANG_TO_EXT = {
     "jsx": ".js",
     "typescript": ".ts",
     "java": ".java",
+    "kotlin": ".kt",
     "go": ".go",
     "rust": ".rs",
     "csharp": ".cs",

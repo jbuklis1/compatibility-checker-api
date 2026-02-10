@@ -8,6 +8,8 @@ from typing import Dict, List, Set, Tuple
 from .issue import Candidate, Issue, Severity
 from .utils import (
     FILE_PATH_CONTEXT_CSHARP,
+    FILE_PATH_CONTEXT_GO,
+    FILE_PATH_CONTEXT_JAVA,
     FILE_PATH_CONTEXT_PYTHON,
     FILE_PATH_CONTEXT_RUST,
     is_comment,
@@ -19,6 +21,8 @@ ENV_API_INDICATORS = (
     "getenv(",
     "os.environ",
     "os.getenv(",
+    "os.Getenv(",
+    "os.LookupEnv(",
     "process.env",
     "subprocess.",
     "environ[",
@@ -93,6 +97,10 @@ def _line_usage_types(line: str, language: str = "python") -> Set[str]:
         types.add("file_io")
     elif language == "csharp" and any(ctx in line for ctx in FILE_PATH_CONTEXT_CSHARP):
         types.add("file_io")
+    elif language == "kotlin" and any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVA):
+        types.add("file_io")
+    elif language == "go" and any(ctx in line for ctx in FILE_PATH_CONTEXT_GO):
+        types.add("file_io")
     if any(ind in line for ind in ENV_API_INDICATORS):
         types.add("env_api")
     if any(ind in line for ind in DISPLAY_INDICATORS):
@@ -151,6 +159,10 @@ class ContextPruner:
         if self.language == "rust" and any(ctx in line for ctx in FILE_PATH_CONTEXT_RUST):
             return True
         if self.language == "csharp" and any(ctx in line for ctx in FILE_PATH_CONTEXT_CSHARP):
+            return True
+        if self.language == "kotlin" and any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVA):
+            return True
+        if self.language == "go" and any(ctx in line for ctx in FILE_PATH_CONTEXT_GO):
             return True
         for var_name, usages in self._usage_map.items():
             if "file_io" in usages and var_name in line:

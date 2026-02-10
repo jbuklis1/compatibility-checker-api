@@ -20,6 +20,8 @@ FILE_PATH_CONTEXT_JAVA = (
     "new File(", "Paths.get(", "Path.of(", "Files.", "FileReader(", "FileWriter(",
     "FileInputStream(", "FileOutputStream(", "RandomAccessFile(",
 )
+# Kotlin uses same JVM file/path APIs as Java
+FILE_PATH_CONTEXT_KOTLIN = FILE_PATH_CONTEXT_JAVA
 FILE_PATH_CONTEXT_RUST = (
     "std::fs::", "Path::", "PathBuf::", "File::open", "OpenOptions", "read_dir",
     "create_dir", "metadata", "canonicalize", "read_to_string", "write", "copy",
@@ -29,6 +31,12 @@ FILE_PATH_CONTEXT_CSHARP = (
     "Path.Combine", "File.", "Directory.", "FileInfo", "DirectoryInfo", "FileStream",
     "File.Read", "File.Write", "Directory.GetFiles", "Directory.GetDirectories",
     "Path.GetFullPath", "Environment.GetFolderPath",
+)
+FILE_PATH_CONTEXT_GO = (
+    "os.Open", "os.Create", "os.ReadFile", "os.WriteFile", "os.Mkdir", "os.Remove",
+    "os.Stat", "os.Chdir", "os.ReadDir", "filepath.Join", "filepath.Abs", "filepath.Walk",
+    "path.Join", "ioutil.ReadFile", "ioutil.WriteFile", "ioutil.ReadDir",
+    "os.Getenv", "os.LookupEnv",
 )
 
 # Substrings that indicate the line is likely URL/API or display text, not a file path.
@@ -46,10 +54,14 @@ def is_file_path_context(line: str, language: str = "python") -> bool:
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVASCRIPT)
     if language == "java":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVA)
+    if language == "kotlin":
+        return any(ctx in line for ctx in FILE_PATH_CONTEXT_KOTLIN)
     if language == "rust":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_RUST)
     if language == "csharp":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_CSHARP)
+    if language == "go":
+        return any(ctx in line for ctx in FILE_PATH_CONTEXT_GO)
     return False
 
 
@@ -79,6 +91,9 @@ _VAR_PATH_CSHARP = re.compile(
 )
 _VAR_PATH_CSHARP_NEW = re.compile(
     r"new\s+(?:FileInfo|DirectoryInfo)\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
+)
+_VAR_PATH_GO = re.compile(
+    r"(?:os\.Open|os\.Create|os\.ReadFile|os\.WriteFile|os\.Stat|os\.Mkdir|os\.Remove|os\.Chdir|os\.ReadDir|filepath\.Join|filepath\.Abs|filepath\.Walk|ioutil\.ReadFile|ioutil\.WriteFile|ioutil\.ReadDir)\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
 )
 
 # MIME type pattern: "type/subtype" - not file paths.
@@ -117,10 +132,14 @@ def has_variable_path_argument(line: str, language: str = "python") -> bool:
         return _VAR_PATH_JAVASCRIPT.search(line) is not None
     if language == "java":
         return _VAR_PATH_JAVA.search(line) is not None
+    if language == "kotlin":
+        return _VAR_PATH_JAVA.search(line) is not None
     if language == "rust":
         return _VAR_PATH_RUST.search(line) is not None
     if language == "csharp":
         return _VAR_PATH_CSHARP.search(line) is not None or _VAR_PATH_CSHARP_NEW.search(line) is not None
+    if language == "go":
+        return _VAR_PATH_GO.search(line) is not None
     return False
 
 
@@ -139,6 +158,7 @@ def detect_language(file_path: Path) -> str:
         '.jsx': 'javascript',
         '.ts': 'typescript',
         '.java': 'java',
+        '.kt': 'kotlin',
         '.go': 'go',
         '.rs': 'rust',
         '.cs': 'csharp',

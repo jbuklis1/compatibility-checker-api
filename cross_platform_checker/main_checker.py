@@ -11,7 +11,7 @@ from .utils import detect_language
 from .checkers import (
     PathChecker, APIChecker, FileChecker, EnvChecker,
     SystemChecker, PythonChecker, CppChecker, JavaScriptChecker, JavaChecker,
-    RustChecker, CSharpChecker,
+    GoChecker, RustChecker, CSharpChecker,
 )
 
 
@@ -32,16 +32,19 @@ class CrossPlatformChecker:
             SystemChecker(),
         ]
         
-        # Language-specific checkers (C and C++ share the same checker; JS and TS share the same checker)
+        # Language-specific checkers (C and C++ share the same checker; JS and TS share the same; Java and Kotlin share the same)
         _cpp_checker = CppChecker()
         _js_checker = JavaScriptChecker()
+        _java_checker = JavaChecker()
         self.language_checkers = {
             'python': PythonChecker(),
             'cpp': _cpp_checker,
             'c': _cpp_checker,
             'javascript': _js_checker,
             'typescript': _js_checker,
-            'java': JavaChecker(),
+            'java': _java_checker,
+            'kotlin': _java_checker,
+            'go': GoChecker(),
             'rust': RustChecker(),
             'csharp': CSharpChecker(),
         }
@@ -178,6 +181,10 @@ class CrossPlatformChecker:
             imports.extend(self._extract_cpp_includes(lines))
         elif language == 'java':
             imports.extend(self._extract_java_imports(lines))
+        elif language == 'kotlin':
+            imports.extend(self._extract_java_imports(lines))
+        elif language == 'go':
+            imports.extend(self._extract_go_imports(lines))
         elif language == 'rust':
             imports.extend(self._extract_rust_imports(lines))
         elif language == 'csharp':
@@ -274,6 +281,34 @@ class CrossPlatformChecker:
         
         return imports
     
+    def _extract_go_imports(self, lines: List[str]) -> List[str]:
+        """Extract Go import statements. Returns package paths for dependency graph."""
+        imports: List[str] = []
+        import re
+        in_import_block = False
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('//') or stripped.startswith('/*'):
+                continue
+            # import "path" or import _ "path" or import alias "path"
+            match = re.match(r'^\s*import\s+(?:\s*[a-zA-Z0-9_]*\s+)?["\']([^"\']+)["\']\s*$', stripped)
+            if match:
+                imports.append(match.group(1))
+                continue
+            # import ( starting block
+            if re.match(r'^\s*import\s*\(\s*$', stripped):
+                in_import_block = True
+                continue
+            if in_import_block:
+                if stripped.startswith(')'):
+                    in_import_block = False
+                    continue
+                # "path" or _ "path" or alias "path"
+                match = re.match(r'^\s*(?:[a-zA-Z0-9_]+\s+)?["\']([^"\']+)["\']\s*$', stripped)
+                if match:
+                    imports.append(match.group(1))
+        return imports
+    
     def _extract_rust_imports(self, lines: List[str]) -> List[str]:
         """Extract Rust use and mod statements. Returns crate/module names for dependency graph."""
         imports: List[str] = []
@@ -318,7 +353,7 @@ class CrossPlatformChecker:
         if not imp_clean:
             return None
 
-        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '').replace('.java', '').replace('.rs', '').replace('.cs', '')
+        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '').replace('.java', '').replace('.kt', '').replace('.rs', '').replace('.cs', '')
 
         # Relative import (Python: from .module or from ..module import ...)
         if imp_clean.startswith('.'):
@@ -356,7 +391,7 @@ class CrossPlatformChecker:
                         rel = fp.relative_to(common)
                     except ValueError:
                         continue
-                    stem = str(rel).replace('\\', '/').replace('.py', '').replace('.ts', '').replace('.js', '').replace('.java', '')
+                    stem = str(rel).replace('\\', '/').replace('.py', '').replace('.ts', '').replace('.js', '').replace('.java', '').replace('.kt', '').replace('.go', '')
                     if stem.endswith('/__init__'):
                         stem = stem[:-9]
                     module_path = stem.replace('/', '.')
@@ -370,7 +405,7 @@ class CrossPlatformChecker:
 
         # Same directory, with extensions
         if from_file.parent:
-            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c', '.java', '.rs', '.cs']:
+            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c', '.java', '.kt', '.go', '.rs', '.cs']:
                 candidate = (from_file.parent / (imp_base + ext)).resolve()
                 if candidate in file_set:
                     return candidate

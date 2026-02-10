@@ -11,6 +11,7 @@ from .python_checker import PythonChecker
 from .cpp_checker import CppChecker
 from .javascript_checker import JavaScriptChecker
 from .java_checker import JavaChecker
+from .go_checker import GoChecker
 from .rust_checker import RustChecker
 from .csharp_checker import CSharpChecker
 
@@ -24,6 +25,7 @@ __all__ = [
     'CppChecker',
     'JavaScriptChecker',
     'JavaChecker',
+    'GoChecker',
     'RustChecker',
     'CSharpChecker',
 ]

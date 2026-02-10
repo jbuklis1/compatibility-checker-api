@@ -181,6 +181,26 @@ class APIChecker(BaseChecker):
                             "LIBRARY_IMPORT",
                         )
                         break
+            # Go: syscall and platform-specific packages (import "path" - path is in quotes, so match the import line)
+            if self.language == 'go':
+                m_syscall = re.search(r'import\s+(?:\s*[a-zA-Z0-9_]*\s+)?["\']syscall["\']', line)
+                if m_syscall:
+                    self._add_issue(
+                        Severity.WARNING, i, m_syscall.start(),
+                        "Platform-specific package: syscall",
+                        line.strip(),
+                        "Use build tags or runtime.GOOS guards for cross-platform compatibility",
+                        "LIBRARY_IMPORT",
+                    )
+                m_sys = re.search(r'["\'](golang\.org/x/sys/(?:windows|unix|plan9)[^"\']*)["\']', line)
+                if m_sys:
+                    self._add_issue(
+                        Severity.WARNING, i, m_sys.start(1),
+                        "Platform-specific package: golang.org/x/sys",
+                        line.strip(),
+                        "Use build tags or runtime.GOOS guards for cross-platform compatibility",
+                        "LIBRARY_IMPORT",
+                    )
     
     def _check_threading_apis(self):
         """Check for threading API issues."""
