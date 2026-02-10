@@ -1,13 +1,32 @@
 /* Shared styles for all pages */
 body {
   font-family: system-ui, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #2563eb, #1d4ed8);
+}
+
+.page-card {
   max-width: 48rem;
   margin: 2rem auto;
-  padding: 0 1rem;
+  padding: 1.25rem 1.5rem;
+  background: #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  font-size: 1rem;
+}
+
+.intro-block {
+  margin-bottom: 0.5rem;
+}
+
+.page-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d1d5db;
 }
 
 h1 {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
 }
 
@@ -31,7 +50,7 @@ a:hover {
 
 .meta {
   color: #64748b;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   margin-top: 1.5rem;
 }
 
@@ -46,14 +65,14 @@ form {
 
 label {
   display: block;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
 input[type="text"] {
   padding: 0.5rem 0.75rem;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   min-width: 20rem;
 }
 
@@ -97,7 +116,7 @@ input[type="text"] {
   align-items: center;
   justify-content: center;
   padding: 0.75rem 1.25rem;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 500;
   color: #fff;
   background: #2563eb;
@@ -116,7 +135,7 @@ input[type="text"] {
 
 /* Review section: supported languages grid */
 .language-grid-intro {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 500;
   color: #475569;
   margin-bottom: 0.5rem;
@@ -132,12 +151,12 @@ input[type="text"] {
 .language-tag {
   display: inline-block;
   padding: 0.35rem 0.6rem;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: #334155;
-  background: #f1f5f9;
+  color: #374151;
+  background: #d1d5db;
   border-radius: 0.25rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #9ca3af;
 }
 
 #review-form-container .selection-summary-wrap {
@@ -155,7 +174,7 @@ input[type="text"] {
 
 button {
   padding: 0.5rem 1rem;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   background: #2563eb;
   color: white;
   border: none;
@@ -175,8 +194,8 @@ button:hover {
 .analysis-progress {
   margin: 1.5rem 0;
   padding: 1.5rem;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
+  background: #d1d5db;
+  border: 1px solid #9ca3af;
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -186,7 +205,7 @@ button:hover {
 .analysis-progress-spinner {
   width: 1.5rem;
   height: 1.5rem;
-  border: 2px solid #7dd3fc;
+  border: 2px solid #9ca3af;
   border-top-color: #0284c7;
   border-radius: 50%;
   animation: analysis-spin 0.7s linear infinite;
@@ -196,6 +215,7 @@ button:hover {
   margin: 0;
   color: #0c4a6e;
   font-weight: 500;
+  font-size: 1rem;
 }
 
 @keyframes analysis-spin {
@@ -207,17 +227,19 @@ button:hover {
   color: #dc2626;
   margin: 1rem 0;
   padding: 0.75rem;
-  background: #fef2f2;
+  background: #e5e7eb;
   border-radius: 0.375rem;
+  font-size: 0.9375rem;
 }
 
 /* Issue styles */
 .issue {
   margin: 1rem 0;
   padding: 0.75rem;
-  background: #f8fafc;
+  background: #d1d5db;
   border-radius: 0.375rem;
-  border-left: 4px solid #94a3b8;
+  border-left: 4px solid #6b7280;
+  font-size: 0.9375rem;
 }
 
 .issue.error {
@@ -233,7 +255,7 @@ button:hover {
 }
 
 .issue-meta {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   color: #64748b;
   margin-bottom: 0.25rem;
 }
@@ -241,12 +263,13 @@ button:hover {
 .issue-msg {
   font-weight: 500;
   margin-bottom: 0.25rem;
+  font-size: 1rem;
 }
 
 .issue-code,
 .issue-fix {
   font-family: ui-monospace, monospace;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -257,17 +280,17 @@ button:hover {
 }
 
 .section h2 {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 pre {
-  background: #f1f5f9;
+  background: #d1d5db;
   padding: 1rem;
   border-radius: 0.375rem;
   overflow-x: auto;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   white-space: pre-wrap;
 }
 
@@ -276,27 +299,27 @@ pre {
   margin: 0 0 1.5rem 0;
   padding: 0.75rem 1rem;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .ai-status.available {
-  background: #d1fae5;
+  background: #d1d5db;
   color: #065f46;
   border-left: 4px solid #10b981;
 }
 
 .ai-status.unavailable {
-  background: #fee2e2;
+  background: #d1d5db;
   color: #991b1b;
   border-left: 4px solid #ef4444;
 }
 
 .ai-status-icon {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.0625rem;
 }
 
 .ai-status-text {
@@ -307,7 +330,7 @@ pre {
 .download-section {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: #f8fafc;
+  background: #d1d5db;
   border-radius: 0.375rem;
 }
 
@@ -319,6 +342,7 @@ pre {
   text-decoration: none;
   border-radius: 0.375rem;
   font-weight: 500;
+  font-size: 1rem;
   transition: background 0.2s;
 }
 
@@ -339,15 +363,15 @@ pre {
 .file-collapsible {
   margin-top: 1.5rem;
   padding: 0;
-  background: #f8fafc;
+  background: #d1d5db;
   border-radius: 0.375rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #9ca3af;
 }
 
 .collapsible-section summary,
 .file-collapsible summary {
   padding: 0.75rem 1rem;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   color: #1e293b;
   cursor: pointer;
@@ -378,7 +402,7 @@ pre {
 .collapsible-section .collapsible-content,
 .file-collapsible .collapsible-content {
   padding: 0 1rem 1rem 1rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #9ca3af;
 }
 
 .collapsible-section .collapsible-content .section,
@@ -413,7 +437,7 @@ pre {
 }
 
 .file-collapsible summary .file-counts {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 500;
   color: #64748b;
 }
@@ -426,22 +450,22 @@ pre {
   padding: 0.5rem 0;
 }
 .file-issues-toolbar-label {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: #64748b;
   font-weight: 500;
 }
 .file-issues-toolbar button {
   padding: 0.35rem 0.75rem;
-  font-size: 0.875rem;
-  border: 1px solid #e2e8f0;
+  font-size: 0.9375rem;
+  border: 1px solid #9ca3af;
   border-radius: 0.375rem;
-  background: #fff;
-  color: #475569;
+  background: #e5e7eb;
+  color: #374151;
   cursor: pointer;
   font-weight: 500;
 }
 .file-issues-toolbar button:hover {
-  background: #f1f5f9;
+  background: #d1d5db;
   color: #1e293b;
 }
 .file-issues-toolbar button[aria-pressed="true"] {
@@ -454,13 +478,13 @@ pre {
 .file-group {
   margin: 1.5rem 0;
   padding: 1rem;
-  background: #f8fafc;
+  background: #d1d5db;
   border-radius: 0.375rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #9ca3af;
 }
 
 .file-group h3 {
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: #1e293b;
@@ -474,7 +498,7 @@ pre {
 /* Homepage review tab */
 .review-trigger {
   padding: 0.5rem 1rem;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 500;
   color: #fff;
   background: #2563eb;
@@ -491,7 +515,7 @@ pre {
 .review-tab-panel {
   margin-top: 1.5rem;
   padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #d1d5db;
 }
 
 .review-tab-banner {
