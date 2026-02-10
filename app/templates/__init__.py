@@ -59,12 +59,27 @@ def render_template(template_name: str, omit_global_ai_banner: bool = False, **k
     return result
 
 
+def _render_reviewable_languages_grid() -> str:
+    """HTML for the grid of reviewable language names in the review section."""
+    from ..services.file_extractor import REVIEWABLE_LANGUAGE_NAMES
+    esc = html.escape
+    items = "".join(
+        f'<span class="language-tag">{esc(name)}</span>' for name in REVIEWABLE_LANGUAGE_NAMES
+    )
+    return f'<div class="language-grid" aria-label="Supported languages">{items}</div>'
+
+
 def render_review_form_fragment(error: Optional[str] = None, value: str = "") -> str:
     """Return only the review form content (no base layout), for embedding in the homepage tab."""
     error_block = f'<div class="form-error">{html.escape(error)}</div>' if error else ""
     value_attr = f' value="{html.escape(value)}"' if value else ""
+    reviewable_languages_html = _render_reviewable_languages_grid()
     template = load_template("review_form.html")
-    return template.format(error_block=error_block, value_attr=value_attr)
+    return template.format(
+        error_block=error_block,
+        value_attr=value_attr,
+        reviewable_languages_html=reviewable_languages_html,
+    )
 
 
 def render_homepage(review_tab_open: bool = False, form_error: Optional[str] = None) -> str:
@@ -86,7 +101,13 @@ def render_review_form(error: Optional[str] = None, value: str = "") -> str:
     """Render the review form template."""
     error_block = f'<div class="form-error">{html.escape(error)}</div>' if error else ""
     value_attr = f' value="{html.escape(value)}"' if value else ""
-    return render_template("review_form.html", error_block=error_block, value_attr=value_attr)
+    reviewable_languages_html = _render_reviewable_languages_grid()
+    return render_template(
+        "review_form.html",
+        error_block=error_block,
+        value_attr=value_attr,
+        reviewable_languages_html=reviewable_languages_html,
+    )
 
 
 def render_review_results(
@@ -168,6 +189,7 @@ def render_review_results(
     file_path_escaped = quote(file_path, safe="")
     return render_template(
         "review_results.html",
+        omit_global_ai_banner=True,
         file_path=esc(file_path),
         file_path_escaped=file_path_escaped,
         error_block=error_block,
@@ -383,6 +405,7 @@ def render_review_multi_results(
 
     return render_template(
         "review_multi_results.html",
+        omit_global_ai_banner=True,
         source_path=esc(source_path),
         source_path_escaped=source_path_escaped,
         source_type=esc(source_type),

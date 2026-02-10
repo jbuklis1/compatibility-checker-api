@@ -12,6 +12,18 @@ SOURCE_EXTENSIONS = {
     '.swift', '.kt', '.scala', '.clj',
 }
 
+# Display names for review section (one per language; derived from extensions)
+EXTENSION_TO_LANG_NAME = {
+    '.py': 'Python', '.js': 'JavaScript', '.jsx': 'JavaScript',
+    '.ts': 'TypeScript', '.tsx': 'TypeScript',
+    '.c': 'C', '.h': 'C',
+    '.cpp': 'C++', '.cxx': 'C++', '.cc': 'C++', '.hpp': 'C++',
+    '.java': 'Java', '.go': 'Go', '.rs': 'Rust', '.rb': 'Ruby',
+    '.php': 'PHP', '.swift': 'Swift', '.kt': 'Kotlin',
+    '.scala': 'Scala', '.clj': 'Clojure',
+}
+REVIEWABLE_LANGUAGE_NAMES = sorted(set(EXTENSION_TO_LANG_NAME.values()))
+
 # Directories to exclude
 EXCLUDE_DIRS = {
     '.git', '.svn', '.hg', '__pycache__', 'node_modules',

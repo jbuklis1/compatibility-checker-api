@@ -1,4 +1,6 @@
 <h1>Review files for cross-platform compatibility</h1>
+<p class="language-grid-intro">Supported languages:</p>
+{reviewable_languages_html}
 <p>Select one or more files, a zip archive, or a folder. The app will automatically detect what you selected and run the appropriate analysis.</p>
 {error_block}
 <div id="client-error" class="form-error" style="display:none;" role="alert"></div>
@@ -7,13 +9,13 @@
   <form method="post" action="/review/results" enctype="multipart/form-data" id="review-form" class="review-form">
     <input type="hidden" name="mode" id="form-mode" value="ai">
     <div class="upload-choices">
-      <div>
-        <label for="source-files">Select file(s) or archive</label>
-        <input type="file" id="source-files" name="files" multiple accept=".py,.js,.ts,.jsx,.tsx,.c,.cpp,.h,.hpp,.zip">
+      <div class="file-input-wrap">
+        <input type="file" id="source-files" name="files" multiple accept=".py,.js,.ts,.jsx,.tsx,.c,.cpp,.h,.hpp,.zip" class="file-input-hidden" aria-label="Select file(s) or archive">
+        <label for="source-files" class="file-input-button">Select file(s) or archive</label>
       </div>
-      <div>
-        <label for="source-folder">Or select a folder</label>
-        <input type="file" id="source-folder" name="files" multiple webkitdirectory>
+      <div class="file-input-wrap">
+        <input type="file" id="source-folder" name="files" multiple webkitdirectory class="file-input-hidden" aria-label="Select a folder">
+        <label for="source-folder" class="file-input-button">Select a folder</label>
       </div>
     </div>
     <div class="selection-summary-wrap">
@@ -106,9 +108,11 @@
       const reviewable = Array.from(files).filter(isReviewable);
       const capped = reviewable.length > MAX_FILES ? MAX_FILES : reviewable.length;
       const excluded = files.length - reviewable.length;
-      msg = (info.type === 'folder' ? 'Folder' : 'Multiple') + ': ' + capped + ' reviewable file(s)' + (excluded > 0 ? ' (' + excluded + ' excluded)' : '');
+      const exampleNames = reviewable.slice(0, 5).map(f => f.name || '');
+      msg = (info.type === 'folder' ? 'Folder' : 'Multiple') + ': ' + capped + ' reviewable file(s)';
       if (reviewable.length > MAX_FILES) msg += '. Showing first ' + MAX_FILES;
-      if (info.names.length) msg += '. Examples: ' + info.names.slice(0, 5).join(', ');
+      if (exampleNames.length) msg += '. Examples: ' + exampleNames.join(', ');
+      if (excluded > 0) msg += '. Excluded files: ' + excluded;
     }} else {{
       msg = info.count + ' item(s)' + (info.names.length ? '. Examples: ' + info.names.join(', ') : '');
     }}
