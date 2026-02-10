@@ -20,6 +20,7 @@ _LANG_TO_EXT = {
     "java": ".java",
     "go": ".go",
     "rust": ".rs",
+    "csharp": ".cs",
     "unknown": ".txt",
 }
 

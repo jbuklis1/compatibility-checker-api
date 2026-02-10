@@ -9,7 +9,7 @@ SOURCE_EXTENSIONS = {
     '.py', '.js', '.ts', '.jsx', '.tsx',
     '.cpp', '.cxx', '.cc', '.c', '.h', '.hpp',
     '.java', '.go', '.rs', '.rb', '.php',
-    '.swift', '.kt', '.scala', '.clj',
+    '.swift', '.kt', '.scala', '.clj', '.cs',
 }
 
 # Display names for review section (one per language; derived from extensions)
@@ -20,7 +20,7 @@ EXTENSION_TO_LANG_NAME = {
     '.cpp': 'C++', '.cxx': 'C++', '.cc': 'C++', '.hpp': 'C++',
     '.java': 'Java', '.go': 'Go', '.rs': 'Rust', '.rb': 'Ruby',
     '.php': 'PHP', '.swift': 'Swift', '.kt': 'Kotlin',
-    '.scala': 'Scala', '.clj': 'Clojure',
+    '.scala': 'Scala', '.clj': 'Clojure', '.cs': 'C#',
 }
 REVIEWABLE_LANGUAGE_NAMES = sorted(set(EXTENSION_TO_LANG_NAME.values()))
 

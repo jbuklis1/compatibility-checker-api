@@ -10,7 +10,7 @@
     <input type="hidden" name="mode" id="form-mode" value="ai">
     <div class="upload-choices">
       <div class="file-input-wrap">
-        <input type="file" id="source-files" name="files" multiple accept=".py,.js,.ts,.jsx,.tsx,.c,.cpp,.h,.hpp,.zip" class="file-input-hidden" aria-label="Select file(s) or archive">
+        <input type="file" id="source-files" name="files" multiple accept=".py,.js,.ts,.jsx,.tsx,.c,.cpp,.h,.hpp,.cs,.zip" class="file-input-hidden" aria-label="Select file(s) or archive">
         <label for="source-files" class="file-input-button">Select file(s) or archive</label>
       </div>
       <div class="file-input-wrap">
@@ -41,13 +41,15 @@
   const rulesButton = document.getElementById('analyze-rules-btn');
   const clientError = document.getElementById('client-error');
   const MAX_FILES = 1000;
+  // Tracks the last confirmed selection so canceling a picker dialog doesn't clear it.
+  let currentFiles = null;
 
   // Mirror file_extractor.py SOURCE_EXTENSIONS and EXCLUDE_DIRS
   const SOURCE_EXTENSIONS = new Set([
     '.py', '.js', '.ts', '.jsx', '.tsx',
     '.cpp', '.cxx', '.cc', '.c', '.h', '.hpp',
     '.java', '.go', '.rs', '.rb', '.php',
-    '.swift', '.kt', '.scala', '.clj'
+    '.swift', '.kt', '.scala', '.clj', '.cs'
   ]);
   const EXCLUDE_DIRS = [
     '.git', '.svn', '.hg', '__pycache__', 'node_modules',
@@ -56,6 +58,7 @@
   ];
 
   function getCurrentFiles() {{
+    if (currentFiles && currentFiles.length > 0) return currentFiles;
     if (inputFiles.files && inputFiles.files.length > 0) return inputFiles.files;
     if (inputFolder.files && inputFolder.files.length > 0) return inputFolder.files;
     return null;
@@ -124,18 +127,20 @@
   inputFiles.addEventListener('change', function() {{
     if (this.files && this.files.length > 0) {{
       inputFolder.value = '';
-      updateSummary(this.files);
+      currentFiles = Array.from(this.files);
+      updateSummary(currentFiles);
     }} else {{
-      updateSummary(inputFolder.files);
+      updateSummary(getCurrentFiles());
     }}
   }});
 
   inputFolder.addEventListener('change', function() {{
     if (this.files && this.files.length > 0) {{
       inputFiles.value = '';
-      updateSummary(this.files);
+      currentFiles = Array.from(this.files);
+      updateSummary(currentFiles);
     }} else {{
-      updateSummary(inputFiles.files);
+      updateSummary(getCurrentFiles());
     }}
   }});
 
