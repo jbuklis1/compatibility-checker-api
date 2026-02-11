@@ -21,7 +21,9 @@
 {tests_block}
 <div class="download-section">
   <button onclick="downloadReport()" class="download-button">⬇ Download Report</button>
+  <a href="/review" class="action-button">Analyze another file</a>
 </div>
+<p class="results-nav-links"><a href="/">Home</a> · <a href="/docs">Swagger UI</a></p>
 <script>
 function downloadReport() {{
   const dataEl = document.getElementById('results-data');
@@ -143,4 +145,3 @@ function formatTextReport(results) {{
   return lines.join('\n');
 }}
 </script>
-<p style="margin-top: 1rem;"><a href="/review">Review another file</a> · <a href="/">Home</a> · <a href="/docs">Swagger UI</a></p>

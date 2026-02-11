@@ -7,6 +7,97 @@ from ..schemas import FileIssues
 TEMPLATES_DIR = Path(__file__).parent
 
 
+def _format_display_category(category: str) -> str:
+    """Pretty-print category for display (e.g. DEPRECATION -> Deprecation)."""
+    if not category:
+        return category
+    return category.replace("_", " ").strip().lower().title()
+
+
+def _format_display_severity(severity: str) -> str:
+    """Pretty-print severity for display (e.g. ERROR -> Error)."""
+    if not severity:
+        return severity
+    return severity.strip().lower().title()
+
+
+def _looks_like_numbered_list(block: str) -> bool:
+    """True if block appears to be a numbered list (e.g. 1. ... 2. ...)."""
+    lines = [ln.strip() for ln in block.split("\n") if ln.strip()]
+    if not lines:
+        return False
+    for line in lines:
+        i = 0
+        while i < len(line) and line[i] in "0123456789":
+            i += 1
+        if i == 0 or i >= len(line) or line[i] != "." or (i + 1 < len(line) and not line[i + 1].isspace()):
+            return False
+    return True
+
+
+def _ai_content_to_html(text: str) -> str:
+    """Convert AI-generated plain text (possibly markdown-like) to safe, readable HTML."""
+    if not text:
+        return ""
+    esc = html.escape
+    parts = text.split("```")
+    out = []
+    for i, part in enumerate(parts):
+        part = part.strip()
+        if not part:
+            continue
+        # Odd-index parts are inside code fences
+        if i % 2 == 1:
+            out.append(f'<pre class="ai-code"><code>{esc(part)}</code></pre>')
+            continue
+        # Normal content: paragraphs and optional headings
+        blocks = [b.strip() for b in part.split("\n\n") if b.strip()]
+        for block in blocks:
+            if block.startswith("#### "):
+                out.append(f'<h4 class="ai-h4">{esc(block[5:].strip())}</h4>')
+            elif block.startswith("### "):
+                out.append(f'<h3 class="ai-h3">{esc(block[4:].strip())}</h3>')
+            elif block.startswith("## "):
+                out.append(f'<h2 class="ai-h2">{esc(block[3:].strip())}</h2>')
+            elif block.startswith("# "):
+                out.append(f'<h2 class="ai-h2">{esc(block[2:].strip())}</h2>')
+            elif block.startswith("- ") or block.startswith("* "):
+                items = []
+                for line in block.split("\n"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith("- "):
+                        items.append(line[2:].strip())
+                    elif line.startswith("* "):
+                        items.append(line[2:].strip())
+                    else:
+                        items.append(line)
+                items_esc = "".join(f"<li>{esc(item)}</li>" for item in items)
+                out.append(f'<ul class="ai-list">{items_esc}</ul>')
+            elif _looks_like_numbered_list(block):
+                items = []
+                for line in block.split("\n"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    for j, c in enumerate(line):
+                        if c in "0123456789":
+                            continue
+                        if c == "." and j > 0 and (j + 1 >= len(line) or line[j + 1].isspace()):
+                            items.append(line[j + 1:].strip())
+                            break
+                    else:
+                        items.append(line)
+                items_esc = "".join(f"<li>{esc(item)}</li>" for item in items)
+                out.append(f'<ol class="ai-list">{items_esc}</ol>')
+            else:
+                # Paragraph: single newlines become <br>
+                inner = esc(block).replace("\n", "<br>\n")
+                out.append(f'<p class="ai-p">{inner}</p>')
+    return '<div class="ai-content-body">' + "".join(out) + "</div>"
+
+
 def _render_ai_status_banner() -> str:
     """Generate AI status banner HTML."""
     status = get_ai_status()
@@ -124,9 +215,11 @@ def render_review_results(
     issues_block = ""
     for i in issues:
         cls = "error" if i.severity == "ERROR" else "warning" if i.severity == "WARNING" else "info"
+        cat_display = _format_display_category(getattr(i, "category", "") or "")
+        sev_display = _format_display_severity(getattr(i, "severity", "") or "")
         issues_block += f"""
   <div class="issue {cls}">
-    <div class="issue-meta">Line {i.line_number} · {esc(i.category)} · {esc(i.severity)}</div>
+    <div class="issue-meta">Line {i.line_number} · {esc(cat_display)} · <span class="issue-severity-pill issue-severity-{cls}">{esc(sev_display)}</span></div>
     <div class="issue-msg">{esc(i.message)}</div>
     <div class="issue-code">Code: {esc(i.code)}</div>
     <div class="issue-fix">Fix: {esc(i.suggestion)}</div>
@@ -143,8 +236,8 @@ def render_review_results(
         suggestions_block = f"""<details class="collapsible-section" open>
   <summary>AI fix suggestions</summary>
   <div class="collapsible-content">
-  <div class="section">
-    <pre>{esc(ai_suggestions)}</pre>
+  <div class="section ai-content-block">
+{_ai_content_to_html(ai_suggestions)}
   </div>
   </div>
 </details>"""
@@ -153,8 +246,8 @@ def render_review_results(
         tests_block = f"""<details class="collapsible-section" open>
   <summary>Generated tests</summary>
   <div class="collapsible-content">
-  <div class="section">
-    <pre>{esc(generated_tests)}</pre>
+  <div class="section ai-content-block">
+{_ai_content_to_html(generated_tests)}
   </div>
   </div>
 </details>"""
@@ -251,14 +344,14 @@ def render_review_multi_results(
         except (ValueError, TypeError):
             pass
     
-    # Cross-file insights block (collapsible)
+    # Cross-file insights block (collapsible) — AI-generated, same formatting as other AI sections
     cross_file_insights_block = ""
     if cross_file_insights:
         cross_file_insights_block = f"""<details class="collapsible-section" open>
   <summary>Cross-File Compatibility Insights</summary>
   <div class="collapsible-content">
-  <div class="section">
-    <pre>{esc(cross_file_insights)}</pre>
+  <div class="section ai-content-block">
+{_ai_content_to_html(cross_file_insights)}
   </div>
   </div>
 </details>"""
@@ -309,8 +402,8 @@ def render_review_multi_results(
         ai_fix_suggestions_block = f"""<details class="collapsible-section" open>
   <summary>Group-Level AI Fix Suggestions</summary>
   <div class="collapsible-content">
-  <div class="section">
-    <pre>{esc(ai_fix_suggestions)}</pre>
+  <div class="section ai-content-block">
+{_ai_content_to_html(ai_fix_suggestions)}
   </div>
   </div>
 </details>"""
@@ -337,21 +430,22 @@ def render_review_multi_results(
         info_count = sum(1 for i in issues if i.severity == "INFO")
         
         if issues:
-            counts_parts = []
+            badge_parts = []
             if error_count:
-                counts_parts.append(f"{error_count} error(s)")
+                badge_parts.append(f'<span class="issue-badge issue-badge-error">Errors: {error_count}</span>')
             if warning_count:
-                counts_parts.append(f"{warning_count} warning(s)")
+                badge_parts.append(f'<span class="issue-badge issue-badge-warning">Warnings: {warning_count}</span>')
             if info_count:
-                counts_parts.append(f"{info_count} info")
-            counts_text = ", ".join(counts_parts) if counts_parts else f"{len(issues)} issue(s)"
-            summary_counts = f'<span class="file-counts">{counts_text}</span>'
+                badge_parts.append(f'<span class="issue-badge issue-badge-info">Info: {info_count}</span>')
+            badges_html = "".join(badge_parts)
             issues_html = ""
             for i in issues:
                 cls = "error" if i.severity == "ERROR" else "warning" if i.severity == "WARNING" else "info"
+                cat_display = _format_display_category(getattr(i, "category", "") or "")
+                sev_display = _format_display_severity(getattr(i, "severity", "") or "")
                 issues_html += f"""
     <div class="issue {cls}">
-      <div class="issue-meta">Line {i.line_number} · {esc(i.category)} · {esc(i.severity)}</div>
+      <div class="issue-meta">Line {i.line_number} · {esc(cat_display)} · <span class="issue-severity-pill issue-severity-{cls}">{esc(sev_display)}</span></div>
       <div class="issue-msg">{esc(i.message)}</div>
       <div class="issue-code">Code: {esc(i.code)}</div>
       <div class="issue-fix">Fix: {esc(i.suggestion)}</div>
@@ -360,7 +454,12 @@ def render_review_multi_results(
             file_name_html = f'<span class="file-path-folder">{esc(folder_part)}</span><span class="file-path-name">{esc(name_part)}</span> <span class="file-path-lang">({esc(language)})</span>'
             files_block += f"""
   <details class="file-collapsible" data-issue-count="{issue_count}" data-file-path="{esc(file_display)}">
-    <summary><span class="file-name">{file_name_html}</span>{summary_counts}</summary>
+    <summary>
+      <span class="file-summary-inner">
+        <span class="file-path-row">{file_name_html}</span>
+        <span class="file-issue-badges">{badges_html}</span>
+      </span>
+    </summary>
     <div class="collapsible-content">
       <div class="file-group">
 {issues_html}
@@ -371,7 +470,12 @@ def render_review_multi_results(
             file_name_html = f'<span class="file-path-folder">{esc(folder_part)}</span><span class="file-path-name">{esc(name_part)}</span> <span class="file-path-lang">({esc(language)})</span>'
             files_block += f"""
   <details class="file-collapsible" data-issue-count="0" data-file-path="{esc(file_display)}">
-    <summary><span class="file-name">{file_name_html}</span><span class="file-counts">No issues found.</span></summary>
+    <summary>
+      <span class="file-summary-inner">
+        <span class="file-path-row">{file_name_html}</span>
+        <span class="file-issue-badges"><span class="issue-badge issue-badge-neutral">No issues</span></span>
+      </span>
+    </summary>
     <div class="collapsible-content">
       <div class="file-group">
     <p>No issues found.</p>
@@ -396,6 +500,12 @@ def render_review_multi_results(
   </div>
 </details>"""
 
+    # Group AI-generated sections with a heading so it's clear which content is AI output
+    ai_results_block = ""
+    if cross_file_insights_block or ai_fix_suggestions_block:
+        ai_results_block = '<h2 class="results-section-heading">AI-generated insights</h2>\n'
+        ai_results_block += (cross_file_insights_block or "") + "\n" + (ai_fix_suggestions_block or "")
+
     source_path_escaped = quote(source_path, safe="")
     # For uploads we use report_id so download works without a filesystem path
     if report_id:
@@ -416,8 +526,7 @@ def render_review_multi_results(
         total_errors=total_errors,
         total_warnings=total_warnings,
         total_info=total_info,
-        cross_file_insights_block=cross_file_insights_block,
         dependency_graph_block=dependency_graph_block,
-        ai_fix_suggestions_block=ai_fix_suggestions_block,
         files_block=files_block,
+        ai_results_block=ai_results_block,
     )

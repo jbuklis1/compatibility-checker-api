@@ -3,13 +3,11 @@
 
 <p><strong>{total_files}</strong> file(s) analyzed · <strong>{total_issues}</strong> total issue(s) found ({total_errors} error(s), {total_warnings} warning(s), {total_info} info)</p>
 
-{cross_file_insights_block}
-
 {dependency_graph_block}
 
-{ai_fix_suggestions_block}
-
 {files_block}
+
+{ai_results_block}
 
 <script>
 (function() {{
@@ -48,6 +46,7 @@
 
 <div class="download-section">
   <a href="{download_url}" class="download-button">⬇ Download Multi-File Report</a>
+  <a href="/review" class="action-button">Analyze another file/folder</a>
 </div>
 
-<p style="margin-top: 1rem;"><a href="/review">Analyze another file/folder</a> · <a href="/">Home</a> · <a href="/docs">Swagger UI</a></p>
+<p class="results-nav-links"><a href="/">Home</a> · <a href="/docs">Swagger UI</a></p>
