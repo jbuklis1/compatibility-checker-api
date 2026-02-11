@@ -13,10 +13,39 @@ body {
   border-radius: 0.75rem;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
   font-size: 1rem;
+  line-height: 1.55;
 }
 
 .intro-block {
   margin-bottom: 0.5rem;
+}
+
+/* Homepage: main title – clearly the primary header */
+.intro-block .page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+}
+
+/* Homepage: intro copy – readable body text */
+.intro-block .intro-lead {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: #334155;
+  margin: 0 0 1rem 0;
+}
+
+.intro-block .intro-lead small {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.intro-block .intro-actions {
+  margin: 0 0 0.5rem 0;
 }
 
 .page-footer {
@@ -28,6 +57,17 @@ body {
 h1 {
   font-size: 1.5rem;
   font-weight: 600;
+  color: #1e293b;
+}
+
+/* Section heading (e.g. Review tab) – secondary to the main page title */
+h1.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  line-height: 1.35;
 }
 
 ul {
@@ -134,6 +174,10 @@ input[type="text"] {
 }
 
 /* Review section: supported languages grid */
+.language-grid-wrapper {
+  margin-bottom: 1rem;
+}
+
 .language-grid-intro {
   font-size: 0.9375rem;
   font-weight: 500;
@@ -141,11 +185,21 @@ input[type="text"] {
   margin-bottom: 0.5rem;
 }
 
+.language-grid-label-full,
+.language-grid-label-partial {
+  margin-top: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.language-grid-label-full:first-of-type {
+  margin-top: 0;
+}
+
 .language-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
   gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .language-tag {
@@ -153,10 +207,27 @@ input[type="text"] {
   padding: 0.35rem 0.6rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
-  background: #d1d5db;
   border-radius: 0.25rem;
-  border: 1px solid #9ca3af;
+  border: 1px solid transparent;
+}
+
+/* Full support: language-specific checkers (green) */
+.language-tag-full {
+  color: #14532d;
+  background: #bbf7d0;
+  border-color: #86efac;
+}
+
+/* Basic support: general checks only (amber) */
+.language-tag-partial {
+  color: #78350f;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+/* Combined C-family box: keep on one line */
+.language-tag-c-family {
+  white-space: nowrap;
 }
 
 #review-form-container .selection-summary-wrap {
@@ -702,6 +773,16 @@ pre {
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid #d1d5db;
+}
+
+.review-tab-content {
+  line-height: 1.55;
+}
+
+.review-tab-content > p {
+  font-size: 1rem;
+  color: #334155;
+  margin: 0 0 0.75rem 0;
 }
 
 .review-tab-banner {

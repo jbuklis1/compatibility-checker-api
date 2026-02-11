@@ -150,14 +150,39 @@ def render_template(template_name: str, omit_global_ai_banner: bool = False, **k
     return result
 
 
+# C-family languages shown as one combined box in the language grid
+_C_FAMILY_GROUP = ("C", "C++", "C#")
+_C_FAMILY_LABEL = "C / C++ / C#"
+
+
 def _render_reviewable_languages_grid() -> str:
-    """HTML for the grid of reviewable language names in the review section."""
-    from ..services.file_extractor import REVIEWABLE_LANGUAGE_NAMES
-    esc = html.escape
-    items = "".join(
-        f'<span class="language-tag">{esc(name)}</span>' for name in REVIEWABLE_LANGUAGE_NAMES
+    """HTML for the grid of reviewable language names, grouped and colored by support level."""
+    from ..services.file_extractor import (
+        FULL_SUPPORT_LANGUAGE_NAMES_SORTED,
+        PARTIAL_SUPPORT_LANGUAGE_NAMES,
     )
-    return f'<div class="language-grid" aria-label="Supported languages">{items}</div>'
+    esc = html.escape
+    # Full support: C, C++, C# in one box; rest as individual tags
+    full_display = [n for n in FULL_SUPPORT_LANGUAGE_NAMES_SORTED if n not in _C_FAMILY_GROUP]
+    full_display.insert(0, _C_FAMILY_LABEL)
+    full_tags_parts = []
+    for name in full_display:
+        extra_class = " language-tag-c-family" if name == _C_FAMILY_LABEL else ""
+        full_tags_parts.append(f'<span class="language-tag language-tag-full{extra_class}">{esc(name)}</span>')
+    full_tags = "".join(full_tags_parts)
+    partial_tags = "".join(
+        f'<span class="language-tag language-tag-partial">{esc(name)}</span>'
+        for name in PARTIAL_SUPPORT_LANGUAGE_NAMES
+    )
+    parts = []
+    parts.append('<div class="language-grid-wrapper" aria-label="Supported languages">')
+    parts.append('<p class="language-grid-intro language-grid-label-full">Full support (language-specific checks)</p>')
+    parts.append(f'<div class="language-grid language-grid-full">{full_tags}</div>')
+    if partial_tags:
+        parts.append('<p class="language-grid-intro language-grid-label-partial">Basic support (path/API checks only)</p>')
+        parts.append(f'<div class="language-grid language-grid-partial">{partial_tags}</div>')
+    parts.append("</div>")
+    return "\n".join(parts)
 
 
 def render_review_form_fragment(error: Optional[str] = None, value: str = "") -> str:

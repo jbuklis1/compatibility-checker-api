@@ -24,6 +24,17 @@ EXTENSION_TO_LANG_NAME = {
 }
 REVIEWABLE_LANGUAGE_NAMES = sorted(set(EXTENSION_TO_LANG_NAME.values()))
 
+# Languages with dedicated cross-platform checkers (full rule-based support)
+FULL_SUPPORT_LANGUAGE_NAMES = frozenset({
+    "Python", "C++", "C", "JavaScript", "TypeScript",
+    "Java", "Kotlin", "Go", "Rust", "C#",
+})
+# Remainder get general checks only (path, API, file, env, system)
+PARTIAL_SUPPORT_LANGUAGE_NAMES = sorted(
+    name for name in REVIEWABLE_LANGUAGE_NAMES if name not in FULL_SUPPORT_LANGUAGE_NAMES
+)
+FULL_SUPPORT_LANGUAGE_NAMES_SORTED = sorted(FULL_SUPPORT_LANGUAGE_NAMES)
+
 # Directories to exclude
 EXCLUDE_DIRS = {
     '.git', '.svn', '.hg', '__pycache__', 'node_modules',
