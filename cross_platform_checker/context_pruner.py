@@ -10,8 +10,10 @@ from .utils import (
     FILE_PATH_CONTEXT_CSHARP,
     FILE_PATH_CONTEXT_GO,
     FILE_PATH_CONTEXT_JAVA,
+    FILE_PATH_CONTEXT_LUA,
     FILE_PATH_CONTEXT_PYTHON,
     FILE_PATH_CONTEXT_RUST,
+    FILE_PATH_CONTEXT_SWIFT,
     is_comment,
     looks_like_file_path,
 )
@@ -101,6 +103,10 @@ def _line_usage_types(line: str, language: str = "python") -> Set[str]:
         types.add("file_io")
     elif language == "go" and any(ctx in line for ctx in FILE_PATH_CONTEXT_GO):
         types.add("file_io")
+    elif language == "lua" and any(ctx in line for ctx in FILE_PATH_CONTEXT_LUA):
+        types.add("file_io")
+    elif language == "swift" and any(ctx in line for ctx in FILE_PATH_CONTEXT_SWIFT):
+        types.add("file_io")
     if any(ind in line for ind in ENV_API_INDICATORS):
         types.add("env_api")
     if any(ind in line for ind in DISPLAY_INDICATORS):
@@ -163,6 +169,10 @@ class ContextPruner:
         if self.language == "kotlin" and any(ctx in line for ctx in FILE_PATH_CONTEXT_JAVA):
             return True
         if self.language == "go" and any(ctx in line for ctx in FILE_PATH_CONTEXT_GO):
+            return True
+        if self.language == "lua" and any(ctx in line for ctx in FILE_PATH_CONTEXT_LUA):
+            return True
+        if self.language == "swift" and any(ctx in line for ctx in FILE_PATH_CONTEXT_SWIFT):
             return True
         for var_name, usages in self._usage_map.items():
             if "file_io" in usages and var_name in line:

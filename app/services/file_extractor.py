@@ -9,7 +9,7 @@ SOURCE_EXTENSIONS = {
     '.py', '.js', '.ts', '.jsx', '.tsx',
     '.cpp', '.cxx', '.cc', '.c', '.h', '.hpp',
     '.java', '.go', '.rs', '.rb', '.php',
-    '.swift', '.kt', '.scala', '.clj', '.cs',
+    '.swift', '.kt', '.scala', '.clj', '.cs', '.lua',
 }
 
 # Display names for review section (one per language; derived from extensions)
@@ -20,14 +20,14 @@ EXTENSION_TO_LANG_NAME = {
     '.cpp': 'C++', '.cxx': 'C++', '.cc': 'C++', '.hpp': 'C++',
     '.java': 'Java', '.go': 'Go', '.rs': 'Rust', '.rb': 'Ruby',
     '.php': 'PHP', '.swift': 'Swift', '.kt': 'Kotlin',
-    '.scala': 'Scala', '.clj': 'Clojure', '.cs': 'C#',
+    '.scala': 'Scala', '.clj': 'Clojure', '.cs': 'C#', '.lua': 'Lua',
 }
 REVIEWABLE_LANGUAGE_NAMES = sorted(set(EXTENSION_TO_LANG_NAME.values()))
 
 # Languages with dedicated cross-platform checkers (full rule-based support)
 FULL_SUPPORT_LANGUAGE_NAMES = frozenset({
     "Python", "C++", "C", "JavaScript", "TypeScript",
-    "Java", "Kotlin", "Go", "Rust", "C#",
+    "Java", "Kotlin", "Go", "Rust", "C#", "Lua", "Swift",
 })
 # Remainder get general checks only (path, API, file, env, system)
 PARTIAL_SUPPORT_LANGUAGE_NAMES = sorted(

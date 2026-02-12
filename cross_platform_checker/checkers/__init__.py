@@ -14,6 +14,8 @@ from .java_checker import JavaChecker
 from .go_checker import GoChecker
 from .rust_checker import RustChecker
 from .csharp_checker import CSharpChecker
+from .lua_checker import LuaChecker
+from .swift_checker import SwiftChecker
 
 __all__ = [
     'PathChecker',
@@ -28,4 +30,6 @@ __all__ = [
     'GoChecker',
     'RustChecker',
     'CSharpChecker',
+    'LuaChecker',
+    'SwiftChecker',
 ]

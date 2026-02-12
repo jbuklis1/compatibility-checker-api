@@ -22,6 +22,8 @@ _LANG_TO_EXT = {
     "go": ".go",
     "rust": ".rs",
     "csharp": ".cs",
+    "lua": ".lua",
+    "swift": ".swift",
     "unknown": ".txt",
 }
 

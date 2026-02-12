@@ -38,6 +38,16 @@ FILE_PATH_CONTEXT_GO = (
     "path.Join", "ioutil.ReadFile", "ioutil.WriteFile", "ioutil.ReadDir",
     "os.Getenv", "os.LookupEnv",
 )
+FILE_PATH_CONTEXT_LUA = (
+    "io.open", "io.popen", "io.lines", "io.input", "io.output", "io.stderr", "io.stdin", "io.stdout",
+    "package.path", "package.cpath", "dofile(", "loadfile(",
+)
+FILE_PATH_CONTEXT_SWIFT = (
+    "FileManager.default", "FileManager().", "FileHandle(", "URL(fileURLWithPath:",
+    "NSString(path:", "Data(contentsOf:", "String(contentsOfFile:", "fileExists(atPath:",
+    "contents(atPath:", "createDirectory(", "removeItem(at:", "contentsOfDirectory(at:",
+    "attributesOfItem(atPath:", "fileExists(atPath:",
+)
 
 # Substrings that indicate the line is likely URL/API or display text, not a file path.
 URL_OR_DISPLAY_INDICATORS = (
@@ -62,6 +72,10 @@ def is_file_path_context(line: str, language: str = "python") -> bool:
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_CSHARP)
     if language == "go":
         return any(ctx in line for ctx in FILE_PATH_CONTEXT_GO)
+    if language == "lua":
+        return any(ctx in line for ctx in FILE_PATH_CONTEXT_LUA)
+    if language == "swift":
+        return any(ctx in line for ctx in FILE_PATH_CONTEXT_SWIFT)
     return False
 
 
@@ -94,6 +108,12 @@ _VAR_PATH_CSHARP_NEW = re.compile(
 )
 _VAR_PATH_GO = re.compile(
     r"(?:os\.Open|os\.Create|os\.ReadFile|os\.WriteFile|os\.Stat|os\.Mkdir|os\.Remove|os\.Chdir|os\.ReadDir|filepath\.Join|filepath\.Abs|filepath\.Walk|ioutil\.ReadFile|ioutil\.WriteFile|ioutil\.ReadDir)\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
+)
+_VAR_PATH_LUA = re.compile(
+    r"(?:io\.open|io\.popen|io\.lines|io\.input|io\.output|dofile|loadfile)\s*\(\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
+)
+_VAR_PATH_SWIFT = re.compile(
+    r"(?:fileURLWithPath|atPath|contentsOfFile|contentsOf)\s*:\s*(?![\"'])([a-zA-Z_][a-zA-Z0-9_.]*)\s*[,)]"
 )
 
 # MIME type pattern: "type/subtype" - not file paths.
@@ -140,6 +160,10 @@ def has_variable_path_argument(line: str, language: str = "python") -> bool:
         return _VAR_PATH_CSHARP.search(line) is not None or _VAR_PATH_CSHARP_NEW.search(line) is not None
     if language == "go":
         return _VAR_PATH_GO.search(line) is not None
+    if language == "lua":
+        return _VAR_PATH_LUA.search(line) is not None
+    if language == "swift":
+        return _VAR_PATH_SWIFT.search(line) is not None
     return False
 
 
@@ -162,6 +186,8 @@ def detect_language(file_path: Path) -> str:
         '.go': 'go',
         '.rs': 'rust',
         '.cs': 'csharp',
+        '.lua': 'lua',
+        '.swift': 'swift',
     }
     return lang_map.get(ext, 'unknown')
 
@@ -189,7 +215,7 @@ def position_inside_string_literal(line: str, pos: int) -> bool:
 def is_comment(line: str) -> bool:
     """Check if line is a comment."""
     stripped = line.strip()
-    comment_prefixes = ['#', '//', '/*', '*']
+    comment_prefixes = ['#', '//', '/*', '*', '--']
     return any(stripped.startswith(prefix) for prefix in comment_prefixes)
 
 

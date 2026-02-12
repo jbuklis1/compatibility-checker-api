@@ -11,7 +11,7 @@ from .utils import detect_language
 from .checkers import (
     PathChecker, APIChecker, FileChecker, EnvChecker,
     SystemChecker, PythonChecker, CppChecker, JavaScriptChecker, JavaChecker,
-    GoChecker, RustChecker, CSharpChecker,
+    GoChecker, RustChecker, CSharpChecker, LuaChecker, SwiftChecker,
 )
 
 
@@ -47,6 +47,8 @@ class CrossPlatformChecker:
             'go': GoChecker(),
             'rust': RustChecker(),
             'csharp': CSharpChecker(),
+            'lua': LuaChecker(),
+            'swift': SwiftChecker(),
         }
         
     def check_file(self, file_path: Path) -> List[Issue]:
@@ -189,6 +191,10 @@ class CrossPlatformChecker:
             imports.extend(self._extract_rust_imports(lines))
         elif language == 'csharp':
             imports.extend(self._extract_csharp_imports(lines))
+        elif language == 'lua':
+            imports.extend(self._extract_lua_imports(lines))
+        elif language == 'swift':
+            imports.extend(self._extract_swift_imports(lines))
         
         return imports
     
@@ -341,6 +347,38 @@ class CrossPlatformChecker:
             if match:
                 imports.append(match.group(1))
         return imports
+
+    def _extract_lua_imports(self, lines: List[str]) -> List[str]:
+        """Extract Lua require() statements. Returns module names for dependency graph."""
+        imports: List[str] = []
+        import re
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('--'):
+                continue
+            # require("mod") or require('mod') or require ( "mod" )
+            match = re.search(r'require\s*\(\s*["\']([^"\']+)["\']\s*\)', stripped)
+            if match:
+                imports.append(match.group(1))
+                continue
+            match = re.search(r'require\s*["\']([^"\']+)["\']', stripped)
+            if match:
+                imports.append(match.group(1))
+        return imports
+
+    def _extract_swift_imports(self, lines: List[str]) -> List[str]:
+        """Extract Swift import statements. Returns module names."""
+        imports: List[str] = []
+        import re
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+                continue
+            # import ModuleName or import struct ModuleName
+            match = re.match(r'^\s*import\s+(?:struct\s+|class\s+|enum\s+|protocol\s+)?([A-Za-z0-9_.]+)\s*$', stripped)
+            if match:
+                imports.append(match.group(1))
+        return imports
     
     def _resolve_import(self, imp: str, from_file: Path, file_set: set) -> Optional[Path]:
         """Try to resolve an import to an actual file path."""
@@ -353,7 +391,7 @@ class CrossPlatformChecker:
         if not imp_clean:
             return None
 
-        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '').replace('.java', '').replace('.kt', '').replace('.rs', '').replace('.cs', '')
+        imp_base = imp_clean.replace('.py', '').replace('.js', '').replace('.ts', '').replace('.h', '').replace('.hpp', '').replace('.java', '').replace('.kt', '').replace('.rs', '').replace('.cs', '').replace('.lua', '').replace('.swift', '')
 
         # Relative import (Python: from .module or from ..module import ...)
         if imp_clean.startswith('.'):
@@ -391,7 +429,7 @@ class CrossPlatformChecker:
                         rel = fp.relative_to(common)
                     except ValueError:
                         continue
-                    stem = str(rel).replace('\\', '/').replace('.py', '').replace('.ts', '').replace('.js', '').replace('.java', '').replace('.kt', '').replace('.go', '')
+                    stem = str(rel).replace('\\', '/').replace('.py', '').replace('.ts', '').replace('.js', '').replace('.java', '').replace('.kt', '').replace('.go', '').replace('.lua', '').replace('.swift', '')
                     if stem.endswith('/__init__'):
                         stem = stem[:-9]
                     module_path = stem.replace('/', '.')
@@ -405,7 +443,7 @@ class CrossPlatformChecker:
 
         # Same directory, with extensions
         if from_file.parent:
-            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c', '.java', '.kt', '.go', '.rs', '.cs']:
+            for ext in ['.py', '.js', '.ts', '.h', '.hpp', '.cpp', '.c', '.java', '.kt', '.go', '.rs', '.cs', '.lua', '.swift']:
                 candidate = (from_file.parent / (imp_base + ext)).resolve()
                 if candidate in file_set:
                     return candidate

@@ -22,8 +22,9 @@
 <div class="download-section">
   <button onclick="downloadReport()" class="download-button">⬇ Download Report</button>
   <a href="/review" class="action-button">Analyze another file</a>
+  <a href="/" class="action-button">Home</a>
 </div>
-<p class="results-nav-links"><a href="/">Home</a> · <a href="/docs">Swagger UI</a></p>
+<p class="results-nav-links"><a href="/docs">Swagger UI</a></p>
 <script>
 function downloadReport() {{
   const dataEl = document.getElementById('results-data');
@@ -34,11 +35,12 @@ function downloadReport() {{
   try {{
     const results = JSON.parse(dataEl.textContent);
     const report = formatTextReport(results);
-    const blob = new Blob([report], {{ type: 'text/plain' }});
+    const blob = new Blob([report], {{ type: 'text/markdown' }});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = results.file_name + '_compatibility_report.txt';
+    const base = (results.file_name || 'report').replace(/\.[^/.]+$/, '') || results.file_name || 'report';
+    const safe = base.replace(/[^\\w\\-]/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'compatibility_report';
+    a.download = safe + '_compatibility_report.md';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -50,98 +52,66 @@ function downloadReport() {{
 }}
 
 function formatTextReport(results) {{
+  function titleCase(s) {{
+    if (!s) return s;
+    return s.replace(/_/g, ' ').trim().toLowerCase().replace(/\\b\\w/g, c => c.toUpperCase());
+  }}
   function normalizeEscapes(text) {{
     if (!text) return text;
-    // Convert common escaped sequences (\\n, \\r\\n, \\t) into real control characters
-    return text
-      .replace(/\\r\\n/g, '\n')
-      .replace(/\\n/g, '\n')
-      .replace(/\\t/g, '\t');
+    return text.replace(/\\r\\n/g, '\\n').replace(/\\n/g, '\\n').replace(/\\t/g, '\\t');
   }}
 
   const lines = [];
-  lines.push('='.repeat(80));
-  lines.push('Cross-Platform Compatibility Analysis Report');
-  lines.push('='.repeat(80));
-  lines.push('File: ' + results.file_path);
+  lines.push('# Results: ' + results.file_path);
+  lines.push('');
   lines.push('Generated: ' + new Date().toLocaleString());
   lines.push('');
-  
+
   const errors = results.issues.filter(i => i.severity === 'ERROR');
   const warnings = results.issues.filter(i => i.severity === 'WARNING');
   const infos = results.issues.filter(i => i.severity === 'INFO');
-  
-  lines.push('SUMMARY');
-  lines.push('-'.repeat(80));
-  lines.push('Total issues: ' + results.issues.length);
-  lines.push('  Errors:   ' + errors.length);
-  lines.push('  Warnings: ' + warnings.length);
-  lines.push('  Info:     ' + infos.length);
+  lines.push('**' + results.issues.length + '** issue(s) found (' + errors.length + ' error(s), ' + warnings.length + ' warning(s), ' + infos.length + ' info).');
   lines.push('');
-  
-  if (errors.length > 0) {{
-    lines.push('ERRORS');
-    lines.push('-'.repeat(80));
-    errors.forEach(i => {{
-      lines.push('Line ' + i.line_number + ' (' + i.category + ')');
-      lines.push('  Message: ' + i.message);
-      lines.push('  Code:    ' + i.code);
-      lines.push('  Fix:     ' + i.suggestion);
-      lines.push('');
-    }});
-  }}
-  
-  if (warnings.length > 0) {{
-    lines.push('WARNINGS');
-    lines.push('-'.repeat(80));
-    warnings.forEach(i => {{
-      lines.push('Line ' + i.line_number + ' (' + i.category + ')');
-      lines.push('  Message: ' + i.message);
-      lines.push('  Code:    ' + i.code);
-      lines.push('  Fix:     ' + i.suggestion);
-      lines.push('');
-    }});
-  }}
-  
-  if (infos.length > 0) {{
-    lines.push('INFO');
-    lines.push('-'.repeat(80));
-    infos.forEach(i => {{
-      lines.push('Line ' + i.line_number + ' (' + i.category + ')');
-      lines.push('  Message: ' + i.message);
-      lines.push('  Code:    ' + i.code);
-      lines.push('  Fix:     ' + i.suggestion);
-      lines.push('');
-    }});
-  }}
-  
+  lines.push('## Issues');
+  lines.push('');
+
   if (results.issues.length === 0) {{
     lines.push('No compatibility issues found.');
     lines.push('');
+  }} else {{
+    [].concat(errors, warnings, infos).forEach(i => {{
+      const cat = titleCase(i.category || '');
+      const sev = titleCase(i.severity || '');
+      lines.push('**Line ' + i.line_number + ' · ' + cat + ' · ' + sev + '**');
+      lines.push('');
+      lines.push(i.message);
+      lines.push('');
+      lines.push('- **Code:**');
+      lines.push('```');
+      lines.push(i.code);
+      lines.push('```');
+      lines.push('');
+      lines.push('- **Fix:**');
+      lines.push('```');
+      lines.push(i.suggestion);
+      lines.push('```');
+      lines.push('');
+    }});
   }}
-  
+
   if (results.ai_suggestions) {{
-    const aiText = normalizeEscapes(results.ai_suggestions);
-    lines.push('='.repeat(80));
-    lines.push('AI FIX SUGGESTIONS');
-    lines.push('='.repeat(80));
-    lines.push(aiText);
+    lines.push('## AI fix suggestions');
+    lines.push('');
+    lines.push(normalizeEscapes(results.ai_suggestions).trim());
     lines.push('');
   }}
-  
   if (results.generated_tests) {{
-    const testsText = normalizeEscapes(results.generated_tests);
-    lines.push('='.repeat(80));
-    lines.push('GENERATED TEST CASES');
-    lines.push('='.repeat(80));
-    lines.push(testsText);
+    lines.push('## Generated tests');
+    lines.push('');
+    lines.push(normalizeEscapes(results.generated_tests).trim());
     lines.push('');
   }}
-  
-  lines.push('='.repeat(80));
-  lines.push('End of Report');
-  lines.push('='.repeat(80));
-  
+
   return lines.join('\n');
 }}
 </script>

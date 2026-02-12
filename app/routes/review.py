@@ -1,5 +1,6 @@
 """Review route (form-based file analysis)."""
 
+import re
 from deps import (
     APIRouter,
     Dict,
@@ -46,9 +47,23 @@ checker_svc = CheckerService()
 
 # Cache analysis results: key = file_path, value = (issues, code, lang, ai_suggestions, generated_tests, timestamp)
 _results_cache: Dict[str, Tuple[list, Optional[str], Optional[str], Optional[str], Optional[str], float]] = {}
-# Cache multi-file report text for upload flow (download by report_id): key = report_id, value = (report_text, timestamp)
-_multi_report_cache: Dict[str, Tuple[str, float]] = {}
+# Cache multi-file report for upload flow: key = report_id, value = (report_text, timestamp, source_label)
+_multi_report_cache: Dict[str, Tuple[str, float, str]] = {}
 CACHE_TTL = 300.0  # 5 minutes
+
+
+def _safe_report_basename(label: str, for_upload: bool = False) -> str:
+    """Build a readable, filesystem-safe base name for the report (no extension)."""
+    if not (label or "").strip():
+        return "compatibility_report"
+    # Use last path component (file or folder name)
+    p = Path(label.replace("\\", "/").strip())
+    name = p.name or p.stem or "report"
+    # Prefer stem so "my_project.zip" -> "my_project", "main.py" -> "main"
+    stem = Path(name).stem or name
+    # Sanitize: allow letters, digits, underscore, hyphen; cap length
+    safe = re.sub(r"[^\w\-]", "_", stem)[:80].strip("_") or "report"
+    return safe if safe else "compatibility_report"
 
 
 @router.get("/review", response_class=HTMLResponse)
@@ -180,10 +195,11 @@ def review_download(file_path: Optional[str] = Query(None)) -> Response:
         # Use cache to avoid re-running AI calls
         issues, code, lang, ai_suggestions, generated_tests = _analyze_file(file_path, use_cache=True)
         report_text = format_text_report(file_path, issues, ai_suggestions, generated_tests)
-        filename = Path(file_path).name + "_compatibility_report.txt"
+        base = _safe_report_basename(Path(file_path).name)
+        filename = f"{base}_compatibility_report.md"
         return Response(
             content=report_text,
-            media_type="text/plain",
+            media_type="text/markdown",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     except HTTPException:
@@ -391,7 +407,7 @@ def review_results_post(
         )
         report_id = str(uuid.uuid4())
         now = time.time()
-        _multi_report_cache[report_id] = (report_text, now)
+        _multi_report_cache[report_id] = (report_text, now, source_label)
         # Evict expired entries
         for rid in list(_multi_report_cache):
             if now - _multi_report_cache[rid][1] > CACHE_TTL:
@@ -436,11 +452,12 @@ def review_multi_download(
         cached = _multi_report_cache.get(report_id)
         if not cached:
             raise HTTPException(404, "Report expired or not found. Re-run the analysis and download again.")
-        report_text, _ = cached
-        filename = "uploaded_selection_multi_file_compatibility_report.txt"
+        report_text, _, source_label = cached
+        base = _safe_report_basename(source_label)
+        filename = f"{base}_compatibility_report.md"
         return Response(
             content=report_text,
-            media_type="text/plain",
+            media_type="text/markdown",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
@@ -500,10 +517,11 @@ def review_multi_download(
             ai_fix_suggestions=group_fixes,
         )
 
-        filename = Path(source_path).name + "_multi_file_compatibility_report.txt"
+        base = _safe_report_basename(Path(source_path).name)
+        filename = f"{base}_compatibility_report.md"
         return Response(
             content=report_text,
-            media_type="text/plain",
+            media_type="text/markdown",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     except HTTPException:

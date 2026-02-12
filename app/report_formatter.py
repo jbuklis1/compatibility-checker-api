@@ -1,7 +1,36 @@
-"""Format analysis results as human-readable text."""
+"""Format analysis results as human-readable Markdown (aligned with webpage layout)."""
 
 from deps import Any, Dict, List, Optional, Path, datetime
 from .schemas import FileIssues, IssueOut
+
+
+def _title_case(s: str) -> str:
+    """e.g. ERROR -> Error, DEPRECATION -> Deprecation."""
+    if not s:
+        return s
+    return s.replace("_", " ").strip().lower().title()
+
+
+def _issue_block_md(i: IssueOut) -> List[str]:
+    """One issue as Markdown: Line N · Category · Severity, then message, code, fix (like webpage)."""
+    cat = _title_case(getattr(i, "category", "") or "")
+    sev = _title_case(getattr(i, "severity", "") or "")
+    lines = []
+    lines.append(f"**Line {i.line_number} · {cat} · {sev}**")
+    lines.append("")
+    lines.append(i.message)
+    lines.append("")
+    lines.append("- **Code:**")
+    lines.append("```")
+    lines.append(i.code)
+    lines.append("```")
+    lines.append("")
+    lines.append("- **Fix:**")
+    lines.append("```")
+    lines.append(i.suggestion)
+    lines.append("```")
+    lines.append("")
+    return lines
 
 
 def format_text_report(
@@ -10,86 +39,44 @@ def format_text_report(
     ai_suggestions: Optional[str],
     generated_tests: Optional[str],
 ) -> str:
-    """Format analysis results as a human-readable text report."""
+    """Format single-file analysis results as Markdown (structure mirrors results page)."""
     lines = []
-    lines.append("=" * 80)
-    lines.append("Cross-Platform Compatibility Analysis Report")
-    lines.append("=" * 80)
-    lines.append(f"File: {file_path}")
+    lines.append(f"# Results: {file_path}")
+    lines.append("")
     lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("")
-    
-    # Summary
+
     error_count = sum(1 for i in issues if i.severity == "ERROR")
     warning_count = sum(1 for i in issues if i.severity == "WARNING")
     info_count = sum(1 for i in issues if i.severity == "INFO")
-    lines.append("SUMMARY")
-    lines.append("-" * 80)
-    lines.append(f"Total issues: {len(issues)}")
-    lines.append(f"  Errors:   {error_count}")
-    lines.append(f"  Warnings: {warning_count}")
-    lines.append(f"  Info:     {info_count}")
+    lines.append(f"**{len(issues)}** issue(s) found ({error_count} error(s), {warning_count} warning(s), {info_count} info).")
     lines.append("")
-    
-    # Issues by severity
-    errors = [i for i in issues if i.severity == "ERROR"]
-    warnings = [i for i in issues if i.severity == "WARNING"]
-    infos = [i for i in issues if i.severity == "INFO"]
-    
-    if errors:
-        lines.append("ERRORS")
-        lines.append("-" * 80)
-        for i in errors:
-            lines.append(f"Line {i.line_number} ({i.category})")
-            lines.append(f"  Message: {i.message}")
-            lines.append(f"  Code:    {i.code}")
-            lines.append(f"  Fix:     {i.suggestion}")
-            lines.append("")
-    
-    if warnings:
-        lines.append("WARNINGS")
-        lines.append("-" * 80)
-        for i in warnings:
-            lines.append(f"Line {i.line_number} ({i.category})")
-            lines.append(f"  Message: {i.message}")
-            lines.append(f"  Code:    {i.code}")
-            lines.append(f"  Fix:     {i.suggestion}")
-            lines.append("")
-    
-    if infos:
-        lines.append("INFO")
-        lines.append("-" * 80)
-        for i in infos:
-            lines.append(f"Line {i.line_number} ({i.category})")
-            lines.append(f"  Message: {i.message}")
-            lines.append(f"  Code:    {i.code}")
-            lines.append(f"  Fix:     {i.suggestion}")
-            lines.append("")
-    
+
+    # Issues section (like the collapsible "Issues" on the page)
+    lines.append("## Issues")
+    lines.append("")
     if not issues:
         lines.append("No compatibility issues found.")
         lines.append("")
-    
-    # AI suggestions
+    else:
+        errors = [i for i in issues if i.severity == "ERROR"]
+        warnings = [i for i in issues if i.severity == "WARNING"]
+        infos = [i for i in issues if i.severity == "INFO"]
+        for i in errors + warnings + infos:
+            lines.extend(_issue_block_md(i))
+
     if ai_suggestions:
-        lines.append("=" * 80)
-        lines.append("AI FIX SUGGESTIONS")
-        lines.append("=" * 80)
-        lines.append(ai_suggestions)
+        lines.append("## AI fix suggestions")
         lines.append("")
-    
-    # Generated tests
+        lines.append(ai_suggestions.strip())
+        lines.append("")
+
     if generated_tests:
-        lines.append("=" * 80)
-        lines.append("GENERATED TEST CASES")
-        lines.append("=" * 80)
-        lines.append(generated_tests)
+        lines.append("## Generated tests")
         lines.append("")
-    
-    lines.append("=" * 80)
-    lines.append("End of Report")
-    lines.append("=" * 80)
-    
+        lines.append(generated_tests.strip())
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -101,126 +88,85 @@ def format_multi_file_report(
     dependency_graph: Dict[str, Any],
     ai_fix_suggestions: Optional[str],
 ) -> str:
-    """Format multi-file analysis results as a human-readable text report."""
+    """Format multi-file analysis results as Markdown (structure mirrors multi-file results page)."""
     lines = []
-    lines.append("=" * 80)
-    lines.append("Multi-File Cross-Platform Compatibility Analysis Report")
-    lines.append("=" * 80)
-    lines.append(f"Source: {source_path} ({source_type})")
+    lines.append(f"# Multi-File Analysis Results: {source_path}")
+    lines.append("")
     lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("")
-    
-    # Overall summary
-    total_files = len(files)
+
     all_issues: List[IssueOut] = []
-    for file_issues in files:
-        all_issues.extend(file_issues.issues)
-    
+    for f in files:
+        all_issues.extend(f.issues)
     total_issues = len(all_issues)
     error_count = sum(1 for i in all_issues if i.severity == "ERROR")
     warning_count = sum(1 for i in all_issues if i.severity == "WARNING")
     info_count = sum(1 for i in all_issues if i.severity == "INFO")
-    
-    lines.append("OVERALL SUMMARY")
-    lines.append("-" * 80)
-    lines.append(f"Total files analyzed: {total_files}")
-    lines.append(f"Total issues found: {total_issues}")
-    lines.append(f"  Errors:   {error_count}")
-    lines.append(f"  Warnings: {warning_count}")
-    lines.append(f"  Info:     {info_count}")
+    lines.append(f"**{len(files)}** file(s) analyzed · **{total_issues}** total issue(s) found ({error_count} error(s), {warning_count} warning(s), {info_count} info)")
     lines.append("")
-    
-    # Cross-file insights
-    if cross_file_insights:
-        lines.append("=" * 80)
-        lines.append("CROSS-FILE COMPATIBILITY INSIGHTS")
-        lines.append("=" * 80)
-        lines.append(cross_file_insights)
-        lines.append("")
-    
-    # Dependency graph
+
+    # Dependency Relationships (like the collapsible on the page)
     if dependency_graph:
-        lines.append("=" * 80)
-        lines.append("DEPENDENCY GRAPH")
-        lines.append("=" * 80)
-        for file_path, data in list(dependency_graph.items())[:50]:  # Limit display
+        lines.append("## Dependency Relationships")
+        lines.append("")
+        for file_path, data in list(dependency_graph.items())[:50]:
             file_name = Path(file_path).name
             imports = data.get("imports", [])
             imported_by = data.get("imported_by", [])
-            
-            if imports or imported_by:
-                lines.append(f"\n{file_name}:")
-                if imports:
-                    import_names = [Path(imp).name for imp in imports[:10]]
-                    lines.append(f"  Imports: {', '.join(import_names)}")
-                if imported_by:
-                    importer_names = [Path(imp).name for imp in imported_by[:10]]
-                    lines.append(f"  Imported by: {', '.join(importer_names)}")
+            lang = data.get("language", "unknown")
+            lines.append(f"- **{file_name}** ({lang})")
+            if imports:
+                import_names = [Path(imp).name for imp in imports[:10]]
+                lines.append(f"  - Imports: {', '.join(import_names)}")
+            if imported_by:
+                importer_names = [Path(imp).name for imp in imported_by[:10]]
+                lines.append(f"  - Imported by: {', '.join(importer_names)}")
+            if not imports and not imported_by:
+                lines.append("  - *(no dependencies)*")
+            lines.append("")
         lines.append("")
-    
-    # Group-level AI fix suggestions
-    if ai_fix_suggestions:
-        lines.append("=" * 80)
-        lines.append("GROUP-LEVEL AI FIX SUGGESTIONS")
-        lines.append("=" * 80)
-        lines.append(ai_fix_suggestions)
-        lines.append("")
-    
-    # Issues by file
-    lines.append("=" * 80)
-    lines.append("ISSUES BY FILE")
-    lines.append("=" * 80)
+
+    # Standard File Issues (like the collapsible with per-file details)
+    lines.append("## Standard File Issues")
     lines.append("")
-    
     for file_issues in files:
         file_name = Path(file_issues.file_path).name
         issues = file_issues.issues
         language = file_issues.language or "unknown"
-        
-        lines.append(f"File: {file_name} ({language})")
-        lines.append("-" * 80)
-        
+        ec = sum(1 for i in issues if i.severity == "ERROR")
+        wc = sum(1 for i in issues if i.severity == "WARNING")
+        ic = sum(1 for i in issues if i.severity == "INFO")
+        badges = []
+        if ec:
+            badges.append(f"Errors: {ec}")
+        if wc:
+            badges.append(f"Warnings: {wc}")
+        if ic:
+            badges.append(f"Info: {ic}")
+        badge_str = " · ".join(badges) if badges else "No issues"
+        lines.append(f"### {file_name} ({language}) — {badge_str}")
+        lines.append("")
         if not issues:
             lines.append("No issues found.")
             lines.append("")
             continue
-        
-        # Group issues by severity
-        errors = [i for i in issues if i.severity == "ERROR"]
-        warnings = [i for i in issues if i.severity == "WARNING"]
-        infos = [i for i in issues if i.severity == "INFO"]
-        
-        if errors:
-            lines.append("ERRORS:")
-            for i in errors:
-                lines.append(f"  Line {i.line_number} ({i.category})")
-                lines.append(f"    Message: {i.message}")
-                lines.append(f"    Code:    {i.code}")
-                lines.append(f"    Fix:     {i.suggestion}")
-                lines.append("")
-        
-        if warnings:
-            lines.append("WARNINGS:")
-            for i in warnings:
-                lines.append(f"  Line {i.line_number} ({i.category})")
-                lines.append(f"    Message: {i.message}")
-                lines.append(f"    Code:    {i.code}")
-                lines.append(f"    Fix:     {i.suggestion}")
-                lines.append("")
-        
-        if infos:
-            lines.append("INFO:")
-            for i in infos:
-                lines.append(f"  Line {i.line_number} ({i.category})")
-                lines.append(f"    Message: {i.message}")
-                lines.append(f"    Code:    {i.code}")
-                lines.append(f"    Fix:     {i.suggestion}")
-                lines.append("")
-        
+        for i in issues:
+            lines.extend(_issue_block_md(i))
+    lines.append("")
+
+    # AI-generated insights (same order as page: Cross-File then Group-Level Fix Suggestions)
+    if cross_file_insights or ai_fix_suggestions:
+        lines.append("## AI-generated insights")
         lines.append("")
-    
-    lines.append("=" * 80)
-    lines.append("End of Report")
-    lines.append("=" * 80)
-    
+        if cross_file_insights:
+            lines.append("### Cross-File Compatibility Insights")
+            lines.append("")
+            lines.append(cross_file_insights.strip())
+            lines.append("")
+        if ai_fix_suggestions:
+            lines.append("### Group-Level AI Fix Suggestions")
+            lines.append("")
+            lines.append(ai_fix_suggestions.strip())
+            lines.append("")
+
     return "\n".join(lines)
