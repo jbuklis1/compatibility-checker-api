@@ -44,12 +44,12 @@
   // Tracks the last confirmed selection so canceling a picker dialog doesn't clear it.
   let currentFiles = null;
 
-  // Mirror file_extractor.py SOURCE_EXTENSIONS and EXCLUDE_DIRS
+  // Mirror file_extractor.py SOURCE_EXTENSIONS and EXCLUDE_DIRS (keep in sync for all reviewable languages)
   const SOURCE_EXTENSIONS = new Set([
     '.py', '.js', '.ts', '.jsx', '.tsx',
     '.cpp', '.cxx', '.cc', '.c', '.h', '.hpp',
     '.java', '.go', '.rs', '.rb', '.php',
-    '.swift', '.kt', '.scala', '.clj', '.cs'
+    '.swift', '.kt', '.scala', '.clj', '.cs', '.lua'
   ]);
   const EXCLUDE_DIRS = [
     '.git', '.svn', '.hg', '__pycache__', 'node_modules',

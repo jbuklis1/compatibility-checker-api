@@ -46,6 +46,11 @@ class APIChecker(BaseChecker):
                 
             for platform, apis in platform_apis.items():
                 for api in apis:
+                    # Python's high-level file APIs like Path.unlink / os.unlink are
+                    # available on all major platforms, so don't treat "unlink" as a
+                    # Unix-only primitive when analyzing Python source.
+                    if self.language == 'python' and api == 'unlink':
+                        continue
                     if api.endswith('_'):
                         pattern = r'\b' + re.escape(api)
                     else:
