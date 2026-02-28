@@ -1,6 +1,7 @@
 """Template rendering utilities."""
 
 from ..ai_status import get_ai_status
+import re
 from deps import Any, Dict, html, json, List, Optional, os, Path, quote
 from ..schemas import FileIssues
 
@@ -538,6 +539,13 @@ def render_review_multi_results(
     else:
         download_url = f"/review/multi/download?source_path={source_path_escaped}&source_type={quote(source_type, safe='')}"
 
+    # Filename for download attribute so the browser triggers instant download (no open/save dialog)
+    _label = (source_path or "").strip()
+    _name = Path(_label.replace("\\", "/")).name or Path(_label).stem or "report"
+    _stem = Path(_name).stem or _name
+    _safe = (re.sub(r"[^\w\-]", "_", _stem)[:80].strip("_") or "compatibility_report")
+    download_filename = f"{_safe}_compatibility_report.md"
+
     return render_template(
         "review_multi_results.html",
         omit_global_ai_banner=True,
@@ -545,6 +553,7 @@ def render_review_multi_results(
         source_path_escaped=source_path_escaped,
         source_type=esc(source_type),
         download_url=download_url,
+        download_filename=download_filename,
         error_block=error_block,
         total_files=total_files,
         total_issues=total_issues,

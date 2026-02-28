@@ -66,6 +66,30 @@ def _safe_report_basename(label: str, for_upload: bool = False) -> str:
     return safe if safe else "compatibility_report"
 
 
+def _upload_source_label(
+    temp_dir: Optional[Path],
+    source_files: List[Path],
+    files: List[UploadFile],
+) -> str:
+    """Human-readable label for upload (folder/zip): prefer root folder name over first filename."""
+    if not temp_dir or not source_files:
+        return (files[0].filename or "uploaded selection") if files else "uploaded selection"
+    try:
+        rel_paths = [p.relative_to(temp_dir) for p in source_files]
+    except ValueError:
+        return (files[0].filename or "uploaded selection") if files else "uploaded selection"
+    if not rel_paths:
+        return "uploaded selection"
+    first_parts = [p.parts[0] for p in rel_paths if len(p.parts) >= 1]
+    if first_parts and all(p == first_parts[0] for p in first_parts):
+        return first_parts[0]
+    # Flat or mixed: use first file's parent dir name if any, else fallback
+    first_rel = rel_paths[0]
+    if first_rel.parts and len(first_rel.parts) > 1:
+        return first_rel.parts[0]
+    return files[0].filename or "uploaded selection"
+
+
 @router.get("/review", response_class=HTMLResponse)
 def review_get() -> str:
     """Redirect to homepage with review tab open."""
@@ -393,8 +417,8 @@ def review_results_post(
                 )
             )
 
-        # Use the first filename (if any) as a human-readable label
-        source_label = files[0].filename or "uploaded selection"
+        # Use root folder name for report/download when all files share one parent under temp_dir
+        source_label = _upload_source_label(temp_dir, source_files, files)
 
         # Generate report text and cache it so download works without a filesystem path
         report_text = format_multi_file_report(
