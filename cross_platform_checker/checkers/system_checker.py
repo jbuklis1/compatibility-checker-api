@@ -42,13 +42,24 @@ class SystemChecker(BaseChecker):
                         continue
                     for call in system_calls:
                         if line.startswith(call, j):
-                            self._add_issue(
-                                Severity.WARNING, i, j,
-                                f"System call detected: {call}",
-                                line.strip(),
-                                "Ensure command syntax is compatible across platforms or use platform-specific guards",
-                                "SYSTEM_CALL",
-                            )
+                            if call == 'exec(' and self.language in ('c', 'cpp') and self.candidates is not None:
+                                self._add_candidate(
+                                    Severity.WARNING, i, j,
+                                    f"System call detected: {call}",
+                                    line.strip(),
+                                    "Ensure command syntax is compatible across platforms or use platform-specific guards",
+                                    "SYSTEM_CALL",
+                                    "exec_call",
+                                    {},
+                                )
+                            else:
+                                self._add_issue(
+                                    Severity.WARNING, i, j,
+                                    f"System call detected: {call}",
+                                    line.strip(),
+                                    "Ensure command syntax is compatible across platforms or use platform-specific guards",
+                                    "SYSTEM_CALL",
+                                )
                             j += len(call)
                             break
                     else:

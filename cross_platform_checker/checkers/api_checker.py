@@ -61,13 +61,25 @@ class APIChecker(BaseChecker):
                         # Python's exec() runs code strings and is cross-platform; only flag Unix-style exec in other languages
                         if api == 'exec' and self.language == 'python':
                             continue
-                        self._add_issue(
-                            Severity.ERROR, i, m.start(),
-                            f"Platform-specific API detected: {api} ({platform})",
-                            line.strip(),
-                            "Use cross-platform alternatives or add platform-specific guards (#ifdef, if platform.system(), etc.)",
-                            "PLATFORM_API",
-                        )
+                        # C/C++ exec may be Qt's cross-platform exec(); send to pruner to drop Qt context
+                        if api == 'exec' and self.language in ('c', 'cpp') and self.candidates is not None:
+                            self._add_candidate(
+                                Severity.ERROR, i, m.start(),
+                                f"Platform-specific API detected: {api} ({platform})",
+                                line.strip(),
+                                "Use cross-platform alternatives or add platform-specific guards (#ifdef, if platform.system(), etc.)",
+                                "PLATFORM_API",
+                                "exec_call",
+                                {},
+                            )
+                        else:
+                            self._add_issue(
+                                Severity.ERROR, i, m.start(),
+                                f"Platform-specific API detected: {api} ({platform})",
+                                line.strip(),
+                                "Use cross-platform alternatives or add platform-specific guards (#ifdef, if platform.system(), etc.)",
+                                "PLATFORM_API",
+                            )
                         break
     
     def _check_library_imports(self):

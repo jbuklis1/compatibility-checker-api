@@ -119,6 +119,26 @@ def _build_line_usage(lines: List[str], language: str = "python") -> Dict[int, S
     return {i: _line_usage_types(line, language) for i, line in enumerate(lines, 1)}
 
 
+# Qt (and similar C++) classes that provide cross-platform exec() for modal/event-loop; not Unix exec(2).
+_QT_EXEC_CLASSES = (
+    "QDialog", "QMenu", "QApplication", "QEventLoop", "QMessageBox",
+    "QInputDialog", "QFileDialog", "QProgressDialog", "QWizard",
+    "QMenuBar", "QToolBar", "QWidget",
+)
+_QT_EXEC_PATTERN = re.compile(
+    r"(?:" + "|".join(re.escape(c) + r"\s*::" for c in _QT_EXEC_CLASSES) + r")"
+)
+
+
+def _is_qt_exec_context(line: str) -> bool:
+    """True if the line indicates Qt (or similar C++) modal/event-loop exec(), so candidate should be dropped."""
+    if "::exec(" in line:
+        return True
+    if _QT_EXEC_PATTERN.search(line) and "exec" in line:
+        return True
+    return False
+
+
 class ContextPruner:
     """Promotes or drops candidates using file-scope context (assignments and usages)."""
 
@@ -222,6 +242,21 @@ class ContextPruner:
                     )
             elif c.context_type == "string_in_condition":
                 if self._should_promote_string_in_condition(c):
+                    promoted.append(
+                        Issue(
+                            c.severity,
+                            c.line_number,
+                            c.column,
+                            c.message,
+                            c.code,
+                            c.suggestion,
+                            c.category,
+                        )
+                    )
+            elif c.context_type == "exec_call":
+                line_num = c.line_number
+                line = self.lines[line_num - 1] if 1 <= line_num <= len(self.lines) else ""
+                if not _is_qt_exec_context(line):
                     promoted.append(
                         Issue(
                             c.severity,
