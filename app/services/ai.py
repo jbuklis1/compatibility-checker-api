@@ -27,6 +27,18 @@ def _issues_summary(issues: List[IssueOut]) -> str:
     return "\n".join(parts)
 
 
+# Instruction block for evaluating platform-specific code: guarded vs unguarded handling.
+PLATFORM_GUARD_INSTRUCTIONS = (
+    "Some reported issues may lie inside platform-specific blocks (e.g. #ifdef, #if defined(), "
+    "if platform.system(), runtime.GOOS, ProcessInfo, os(Windows)). Treat these as intentionally "
+    "separated implementations. For each: (1) say whether the implementation is effective and how "
+    "it compares to parallel code on other platforms; (2) prefer cross-platform solutions when they "
+    "can replace parallel platform-specific code without losing correctness; (3) when an environment "
+    "has real limitations that require dedicated code, say so and do not recommend replacing it "
+    "with a single cross-platform path."
+)
+
+
 class AIService:
     """Together.ai-backed fix suggestions and test generation."""
 
@@ -53,7 +65,13 @@ class AIService:
         prompt += (
             "Provide actionable fix suggestions: either per-issue or overall. Be concise. "
             "Focus on platform-agnostic APIs (pathlib, os.path.join, platform.system, etc.). "
-            "Use clear bullet points or numbered steps."
+            "Use clear bullet points or numbered steps.\n\n"
+            f"{PLATFORM_GUARD_INSTRUCTIONS}\n\n"
+            "Use the provided source to identify issues that fall inside platform-specific guards "
+            "(preprocessor, platform.system(), runtime.GOOS, etc.). For issues inside such blocks: "
+            "evaluate effectiveness and comparison to other platforms; recommend cross-platform "
+            "replacement only when appropriate; otherwise note that the guarded implementation is "
+            "justified. For issues outside guards, suggest fixes as above (prefer platform-agnostic APIs)."
         )
         try:
             r = client.chat.completions.create(
@@ -88,8 +106,9 @@ class AIService:
             "Source code:\n"
             f"```\n{code[:8000]}\n```\n\n"
             "Provide concrete, runnable test code (e.g. pytest for Python, or platform-specific "
-            "assertions). Include a brief comment explaining what each test checks. Output only "
-            "the test code, optionally wrapped in a markdown code block."
+            "assertions). Include a brief comment explaining what each test checks. Tests may "
+            "assert behavior inside platform guards or document platform-specific branches where "
+            "relevant. Output only the test code, optionally wrapped in a markdown code block."
         )
         try:
             r = client.chat.completions.create(
@@ -168,6 +187,8 @@ class AIService:
             "2. Import path compatibility concerns (Windows vs Unix path separators)\n"
             "3. Cross-file patterns that could break on different platforms\n"
             "4. Recommendations for improving cross-platform compatibility across the codebase\n\n"
+            "When code uses platform guards (e.g. #ifdef, platform.system()), note how OS-specific "
+            "blocks are used and whether they are consistent across files.\n\n"
             "Be concise and actionable. Focus on issues that span multiple files."
         )
         
@@ -238,6 +259,11 @@ class AIService:
             "2. Cross-file patterns that need coordinated changes\n"
             "3. Import path fixes that need to be consistent across files\n"
             "4. Platform-agnostic APIs that should be used consistently\n\n"
+            f"{PLATFORM_GUARD_INSTRUCTIONS}\n\n"
+            "When suggesting fixes, consider which issues are inside platform-specific blocks (using "
+            "the sample source). Evaluate guarded implementations for effectiveness and comparison "
+            "across platforms; prefer cross-platform where it can replace parallel implementations; "
+            "acknowledge when dedicated code is justified.\n\n"
             "Be specific about which files need changes and in what order. "
             "Use clear bullet points or numbered steps."
         )
@@ -255,23 +281,20 @@ class AIService:
         return None
     
     def _format_graph_for_prompt(self, dependency_graph: Dict) -> str:
-        """Format dependency graph for LLM prompt."""
+        """Format dependency graph for LLM prompt. Uses full file paths so the AI can distinguish same-named files (e.g. app/utils.py vs tests/utils.py) and avoid falsely reporting self-imports."""
         if not dependency_graph:
             return "No dependency relationships detected."
         
         lines = []
         for file_path, data in list(dependency_graph.items())[:20]:  # Limit to avoid token limits
-            file_name = Path(file_path).name
             imports = data.get("imports", [])
             imported_by = data.get("imported_by", [])
             
             if imports or imported_by:
-                lines.append(f"\n{file_name}:")
+                lines.append(f"\n{file_path}:")
                 if imports:
-                    import_names = [Path(imp).name for imp in imports[:5]]
-                    lines.append(f"  Imports: {', '.join(import_names)}")
+                    lines.append("  Imports: " + ", ".join(imports[:5]))
                 if imported_by:
-                    importer_names = [Path(imp).name for imp in imported_by[:5]]
-                    lines.append(f"  Imported by: {', '.join(importer_names)}")
+                    lines.append("  Imported by: " + ", ".join(imported_by[:5]))
         
         return "\n".join(lines) if lines else "No significant dependencies detected."
